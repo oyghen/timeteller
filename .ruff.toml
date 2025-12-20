@@ -1,0 +1,11 @@
+[lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "UP",  # pyupgrade
+    "B",  # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "Q",  # flake8-quotes
+    "I",  # isort
+    "D202",  # pydocstyle - no blank lines after function docstring
+]

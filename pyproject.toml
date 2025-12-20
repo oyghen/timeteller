@@ -1,0 +1,24 @@
+[project]
+name = "timeteller"
+version = "0.0.0"
+description = ""
+readme = "README.md"
+authors = [
+    { name = "oyghen", email = "oyghen@duck.com" }
+]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+timeteller = "timeteller.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "ruff>=0.14.10",
+]
