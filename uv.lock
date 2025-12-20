@@ -216,7 +216,7 @@ wheels = [
 
 [[package]]
 name = "timeteller"
-version = "0.0.0"
+version = "0.1.0rc1"
 source = { editable = "." }
 
 [package.dev-dependencies]
