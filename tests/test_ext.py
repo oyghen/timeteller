@@ -14,9 +14,9 @@ class TestExtendedDateTimeParsing:
             "3 March 2020 17:30:45",
         ],
     )
-    def test_core_parse_rejects_natural_language(self, value: str):
+    def test_stdlib_parse_rejects_natural_language(self, value: str):
         with pytest.raises(ValueError):
-            tt.core.parse(value)
+            tt.stdlib.parse(value)
 
     @pytest.mark.parametrize(
         "value, expected",

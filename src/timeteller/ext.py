@@ -9,11 +9,11 @@ import timeteller as tt
 
 
 def parse(
-    value: tt.core.DateTimeLike,
+    value: tt.stdlib.DateTimeLike,
     formats: str | Sequence[str] | None = None,
 ) -> dt.datetime:
     """Return a datetime.datetime parsed from a datetime, date, time, or string."""
     try:
-        return tt.core.parse(value, formats)
+        return tt.stdlib.parse(value, formats)
     except ValueError:
         return parser.parse(value, default=dt.datetime(1900, 1, 1, 0, 0, 0, 0))

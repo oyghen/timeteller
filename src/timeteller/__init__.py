@@ -1,4 +1,4 @@
-__all__ = ("__version__", "core", "ext")
+__all__ = ("__version__", "ext", "stdlib")
 
 from importlib import metadata
 from typing import TYPE_CHECKING
@@ -7,7 +7,7 @@ __version__ = metadata.version(__name__)
 
 
 if TYPE_CHECKING:
-    from timeteller import core, ext
+    from timeteller import ext, stdlib
 
 
 def __getattr__(name: str):
