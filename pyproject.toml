@@ -18,6 +18,9 @@ ext = [
     "python-dateutil>=2.9.0.post0",
     "tzdata>=2025.3",
 ]
+cli = [
+    "typer>=0.20.1",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.18,<0.10.0"]
