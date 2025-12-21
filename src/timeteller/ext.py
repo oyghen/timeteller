@@ -12,7 +12,29 @@ import timeteller as tt
 
 @dataclass(frozen=True, slots=True)
 class Duration:
-    """Immutable duration object representing the difference between two dates/times."""
+    """Immutable duration object representing the difference between two dates/times.
+
+    Examples
+    --------
+    >>> import timeteller as tt
+    >>> duration = tt.ext.Duration("2024-07-01 13:00:00", "2024-08-02 14:00:01")
+    >>> duration
+    Duration(2024-07-01T13:00:00, 2024-08-02T14:00:01)
+    >>> duration.is_zero
+    False
+    >>> duration.as_default()
+    '1mo 1d 1h 1s'
+    >>> duration.as_default() == str(duration)
+    True
+    >>> duration.as_compact_days()
+    '32d 1h 1s'
+    >>> duration.as_compact_weeks()
+    '1mo 1d 1h 1s'
+    >>> duration.as_iso()
+    'P1M1DT1H1S'
+    >>> duration.as_total_seconds()
+    '2_768_401s'
+    """
 
     start_dt: dt.datetime
     end_dt: dt.datetime
@@ -71,7 +93,15 @@ class Duration:
 
     @property
     def is_zero(self) -> bool:
-        """Return True if duration is zero, i.e. all parts are zero."""
+        """Return True if duration is zero, i.e. all parts are zero.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("13:00:00", "13:00:00")
+        >>> duration.is_zero
+        True
+        """
         parts = (
             self.years,
             self.months,
@@ -85,7 +115,23 @@ class Duration:
 
     @property
     def formatted_seconds(self) -> str:
-        """Return seconds and microseconds as a formatted string."""
+        """Return seconds and microseconds as a formatted string.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("13:00:00", "13:00:00.123456")
+        >>> duration.seconds, duration.microseconds, duration.formatted_seconds
+        (0, 123456, '0.123456')
+
+        >>> duration = tt.ext.Duration("13:00:00", "13:00:01")
+        >>> duration.seconds, duration.microseconds, duration.formatted_seconds
+        (1, 0, '1')
+
+        >>> duration = tt.ext.Duration("13:00:00", "13:00:01.234")
+        >>> duration.seconds, duration.microseconds, duration.formatted_seconds
+        (1, 234000, '1.234')
+        """
         if self.microseconds:
             value = f"{self.seconds}.{self.microseconds:06d}".rstrip("0")
             return value.rstrip(".")
@@ -94,7 +140,19 @@ class Duration:
         return "0"
 
     def as_default(self) -> str:
-        """Return duration as a human-readable string."""
+        """Return duration as a human-readable string.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration.as_default()
+        '1y 1h 1m 1s'
+
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration.as_default()
+        '1y 8d 1h 1m 1s'
+        """
         parts: list[str] = []
 
         if self.years:
@@ -115,7 +173,19 @@ class Duration:
         return " ".join(parts)
 
     def as_compact_days(self) -> str:
-        """Return a compact human-readable duration using days as the largest unit."""
+        """Return a compact human-readable duration with days as the largest unit.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration.as_compact_days()
+        '365d 1h 1m 1s'
+
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration.as_compact_days()
+        '373d 1h 1m 1s'
+        """
         total = int(round(self.total_seconds))
         minutes, _ = divmod(total, 60)
         hours, minutes = divmod(minutes, 60)
@@ -137,7 +207,19 @@ class Duration:
         return " ".join(parts)
 
     def as_compact_weeks(self) -> str:
-        """Return duration as a compact human-readable string including weeks."""
+        """Return duration as a compact human-readable string including weeks.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration.as_compact_weeks()
+        '1y 1h 1m 1s'
+
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration.as_compact_weeks()
+        '1y 1w 1d 1h 1m 1s'
+        """
         weeks, days = divmod(self.delta.days, 7)
 
         parts: list[str] = []
@@ -162,7 +244,19 @@ class Duration:
         return " ".join(parts)
 
     def as_iso(self) -> str:
-        """Return duration as an ISO 8601 duration string."""
+        """Return duration as an ISO 8601 duration string.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration.as_iso()
+        'P1YT1H1M1S'
+
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration.as_iso()
+        'P1Y8DT1H1M1S'
+        """
         date_parts = []
         time_parts = []
 
@@ -193,15 +287,31 @@ class Duration:
         return "".join(result)
 
     def as_total_seconds(self) -> str:
-        """Return the total duration in seconds as a string."""
+        """Return the total duration in seconds as a string.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration.as_total_seconds()
+        '31_539_661s'
+        """
         return f"{int(round(self.total_seconds)):_}s"
 
     def as_custom(self, formatter: Callable[["Duration"], str]) -> str:
-        """Return a custom string representation of the Duration object."""
+        """Return a custom string representation of the Duration object.
+
+        Examples
+        --------
+        >>> import timeteller as tt
+        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration.as_custom(lambda x: f"{x.years}y {x.months}mo {x.days}d")
+        '1y 0mo 0d'
+        """
         return formatter(self)
 
     def _get_seconds_part(self, num_parts: int, unit: str = "s") -> str:
-        """Helper function to process the seconds part."""
+        """Return the seconds formatted with the given unit."""
         if self.formatted_seconds != "0":
             return f"{self.formatted_seconds}{unit}"
         return f"0{unit}" if num_parts == 0 else ""
