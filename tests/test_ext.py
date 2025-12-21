@@ -1,8 +1,480 @@
 import datetime as dt
+from dataclasses import FrozenInstanceError
 
 import pytest
 
 import timeteller as tt
+
+
+class TestDuration:
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            (
+                "2024-07-01T13:00:00",
+                "2024-07-02T13:00:01",
+                "Duration(2024-07-01T13:00:00, 2024-07-02T13:00:01)",
+            ),
+            (
+                "2024-07-01T00:00:00",
+                "2024-07-02T14:00:00",
+                "Duration(2024-07-01, 2024-07-02T14:00:00)",
+            ),
+            (
+                "2024-07-01T15:00:00",
+                "2024-07-02T00:00:00",
+                "Duration(2024-07-01T15:00:00, 2024-07-02)",
+            ),
+            (
+                "2024-07-01T00:00:00",
+                "2024-07-02T00:00:00",
+                "Duration(2024-07-01, 2024-07-02)",
+            ),
+        ],
+    )
+    def test_repr(self, start: str, end: str, expected: str):
+        result = tt.ext.Duration(start, end)
+        assert repr(result) == expected
+
+    def test_immutability(self):
+        inst = tt.ext.Duration("2024-07-01T13:00:00", "2024-07-01T13:00:01")
+
+        # trying to modify an attribute should raise an error
+        for attr in ("start_dt", "end_dt", "delta"):
+            with pytest.raises(FrozenInstanceError):
+                setattr(inst, attr, 10)
+
+        # trying to modify a derived attribute should raise an error
+        for attr in (
+            "years",
+            "months",
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "total_seconds",
+        ):
+            with pytest.raises(TypeError):
+                setattr(inst, attr, 10)
+
+        # adding a new attribute should fail
+        with pytest.raises(TypeError):
+            inst.new_attr = 10
+
+        # dataclass with slots should not expose __dict__
+        assert not hasattr(inst, "__dict__")
+
+    def test_constructor_orders_datetimes_and_total_seconds_positive(self):
+        start = dt.datetime(2025, 1, 2, 0, 0, 0)
+        end = dt.datetime(2025, 1, 1, 0, 0, 0)
+        result = tt.ext.Duration(start, end)
+
+        assert repr(result) == "Duration(2025-01-01, 2025-01-02)"
+        assert result.start_dt == min(start, end)
+        assert result.end_dt == max(start, end)
+        assert result.total_seconds > 0
+
+    @pytest.mark.parametrize(
+        "seconds, microseconds, expected",
+        [
+            (0, 0, "0"),
+            (0, 123456, "0.123456"),
+            (1, 0, "1"),
+            (1, 234000, "1.234"),
+        ],
+    )
+    def test_formatted_seconds(self, seconds: int, microseconds: int, expected: str):
+        start = dt.datetime(2025, 1, 1, 13, 0, 0)
+        end = start + dt.timedelta(seconds=seconds, microseconds=microseconds)
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.formatted_seconds == expected
+
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            ("2024-07-01T13:00:00+00:00", "2024-07-01T13:00:00+00:00", "0"),
+            ("T13:00:00", "T13:00:00", "0"),
+            ("T13:00:00", "T13:00:00.000123", "0.000123"),
+            ("T13:00:00", "T13:00:00.123456", "0.123456"),
+            ("T13:00:00", "T13:00:00.1234567", "0.123456"),
+            ("T13:00:00.999999", "T13:00:00.111111", "0.888888"),
+            ("T13:00:00.101010", "T13:00:00.101010", "0"),
+            ("T13:00:00.101010", "T13:00:00.010101", "0.090909"),
+            ("T13:00:00.1010", "T13:00:00.0101", "0.0909"),
+            ("T13:00:00", "T13:00:01", "1"),
+            ("T13:00:00", "T13:00:59", "59"),
+            ("T13:00:00", "T13:00:59.999999", "59.999999"),
+            ("T13:00:00", "T13:00:59.999000", "59.999"),
+            ("T13:00:00", "T13:00:59.0", "59"),
+            ("T13:00:00", "T13:01:00.0", "0"),
+        ],
+    )
+    def test_formatted_seconds_extended(self, start: str, end: str, expected: str):
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.formatted_seconds == expected
+
+    def test_zero_duration(self):
+        t = dt.datetime(2025, 6, 1, 12, 0, 0)
+        result = tt.ext.Duration(t, t)
+        assert result.is_zero is True
+        assert result.as_iso() == "PT0S"
+        assert result.as_default() == "0s"
+
+    @pytest.mark.parametrize(
+        "start, end, iso, default",
+        [
+            ("13:00:00", "13:00:00", "PT0S", "0s"),
+            ("13:00:00", "T13:00:00", "PT0S", "0s"),
+            ("T13:00:00", "13:00:00", "PT0S", "0s"),
+            ("T13:00:00", "T13:00:00", "PT0S", "0s"),
+            ("2024-07-01", "2024-07-01", "PT0S", "0s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:00", "PT0S", "0s"),
+            ("2024-07-01T13:00:00Z", "2024-07-01T13:00:00Z", "PT0S", "0s"),
+            ("2024-07-01T13:00:00+00:00", "2024-07-01T13:00:00+00:00", "PT0S", "0s"),
+            ("2024-07-01T13:00:00Z+01:00", "2024-07-01T13:00:00Z+01:00", "PT0S", "0s"),
+            ("2024-07-01T13:00:00+01:00", "2024-07-01T13:00:00+01:00", "PT0S", "0s"),
+            ("2024-07-01T13:00:00.1", "2024-07-01T13:00:00.1", "PT0S", "0s"),
+            ("2024-07-01T13:00:00+01:00", "2024-07-01T14:00:00+02:00", "PT0S", "0s"),
+            ("2024-07-01T14:00:00+02:00", "2024-07-01T13:00:00+01:00", "PT0S", "0s"),
+        ],
+    )
+    def test_zero_duration_extended(self, start: str, end: str, iso: str, default: str):
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.is_zero is True
+        assert result.as_iso() == iso
+        assert result.as_default() == default
+
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            # 1 year + 1 hour + 1 minute + 1 second
+            (
+                dt.datetime(2024, 7, 1, 13, 0, 0),
+                dt.datetime(2025, 7, 1, 14, 1, 1),
+                "1y 1h 1m 1s",
+            ),
+            # 1 year + 8 days + 1 hour + 1 minute + 1 second
+            (
+                dt.datetime(2024, 7, 1, 13, 0, 0),
+                dt.datetime(2025, 7, 9, 14, 1, 1),
+                "1y 8d 1h 1m 1s",
+            ),
+        ],
+    )
+    def test_as_default(self, start: dt.datetime, end: dt.datetime, expected: str):
+        result = tt.ext.Duration(start, end)
+        assert result.as_default() == expected
+
+    @pytest.mark.parametrize(
+        "start, end, iso, default",
+        [
+            # 1x date change
+            ("2024-07-01", "2025-07-01", "P1Y", "1y"),
+            ("2024-07-01", "2024-08-01", "P1M", "1mo"),
+            ("2024-07-01", "2024-07-02", "P1D", "1d"),
+            ("2024-07-01T13:00:00", "2025-07-01T13:00:00", "P1Y", "1y"),
+            ("2024-07-01T13:00:00", "2024-08-01T13:00:00", "P1M", "1mo"),
+            ("2024-07-01T13:00:00", "2024-07-02T13:00:00", "P1D", "1d"),
+            # 2x date changes
+            ("2024-07-01", "2025-08-01", "P1Y1M", "1y 1mo"),
+            ("2024-07-01", "2025-07-02", "P1Y1D", "1y 1d"),
+            ("2024-07-01", "2024-08-02", "P1M1D", "1mo 1d"),
+            ("2024-07-01T13:00:00", "2025-08-01T13:00:00", "P1Y1M", "1y 1mo"),
+            ("2024-07-01T13:00:00", "2025-07-02T13:00:00", "P1Y1D", "1y 1d"),
+            ("2024-07-01T13:00:00", "2024-08-02T13:00:00", "P1M1D", "1mo 1d"),
+            # 3x date changes
+            ("2024-07-01", "2025-08-02", "P1Y1M1D", "1y 1mo 1d"),
+            ("2024-07-01T13:00:00", "2025-08-02T13:00:00", "P1Y1M1D", "1y 1mo 1d"),
+            # 1x time change
+            ("13:00:00", "14:00:00", "PT1H", "1h"),
+            ("13:00:00", "13:01:00", "PT1M", "1m"),
+            ("13:00:00", "13:00:01", "PT1S", "1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T14:00:00", "PT1H", "1h"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:01:00", "PT1M", "1m"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:01", "PT1S", "1s"),
+            # 2x time changes
+            ("13:00:00", "14:01:00", "PT1H1M", "1h 1m"),
+            ("13:00:00", "14:00:01", "PT1H1S", "1h 1s"),
+            ("13:00:00", "13:01:01", "PT1M1S", "1m 1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T14:01:00", "PT1H1M", "1h 1m"),
+            ("2024-07-01T13:00:00", "2024-07-01T14:00:01", "PT1H1S", "1h 1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:01:01", "PT1M1S", "1m 1s"),
+            # 3x time changes
+            ("13:00:00", "14:01:01", "PT1H1M1S", "1h 1m 1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T14:01:01", "PT1H1M1S", "1h 1m 1s"),
+            # 1x date time + 3x time changes
+            ("2024-07-01T13:00:00", "2025-07-01T14:01:01", "P1YT1H1M1S", "1y 1h 1m 1s"),
+            (
+                "2024-07-01T13:00:00",
+                "2024-08-01T14:01:01",
+                "P1MT1H1M1S",
+                "1mo 1h 1m 1s",
+            ),
+            ("2024-07-01T13:00:00", "2024-07-02T14:01:01", "P1DT1H1M1S", "1d 1h 1m 1s"),
+            # 2x date times + 3x time changes
+            (
+                "2024-07-01T13:00:00",
+                "2025-08-01T14:01:01",
+                "P1Y1MT1H1M1S",
+                "1y 1mo 1h 1m 1s",
+            ),
+            (
+                "2024-07-01T13:00:00",
+                "2025-07-02T14:01:01",
+                "P1Y1DT1H1M1S",
+                "1y 1d 1h 1m 1s",
+            ),
+            (
+                "2024-07-01T13:00:00",
+                "2024-08-02T14:01:01",
+                "P1M1DT1H1M1S",
+                "1mo 1d 1h 1m 1s",
+            ),
+            # 3x date times + 3x time changes
+            (
+                "2024-07-01T13:00:00",
+                "2025-08-02T14:01:01",
+                "P1Y1M1DT1H1M1S",
+                "1y 1mo 1d 1h 1m 1s",
+            ),
+            # microseconds
+            ("2024-07-01T13:00:00.10Z", "2024-07-01T13:00:00.20Z", "PT0.1S", "0.1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:00.5", "PT0.5S", "0.5s"),
+            ("2024-07-01T13:00:00", "2024-07-02T13:00:00.5", "P1DT0.5S", "1d 0.5s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:00.123", "PT0.123S", "0.123s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:01.123", "PT1.123S", "1.123s"),
+            (
+                "2024-07-01T13:00:00",
+                "2024-07-01T13:01:00.123",
+                "PT1M0.123S",
+                "1m 0.123s",
+            ),
+            (
+                "2024-07-01T10:11:30.123456+00:00",
+                "2024-07-01T10:11:40.246801+00:00",
+                "PT10.123345S",
+                "10.123345s",
+            ),
+            #
+            ("2024-07-01T13:00:00", "2024-07-02T14:00:00", "P1DT1H", "1d 1h"),
+            ("2024-07-01T13:00:00", "2024-07-02T15:15:00", "P1DT2H15M", "1d 2h 15m"),
+            (
+                "2024-07-01T13:00:00",
+                "2024-07-02T15:15:30",
+                "P1DT2H15M30S",
+                "1d 2h 15m 30s",
+            ),
+            (
+                "2020-04-06T15:00:07Z",
+                "2021-07-28T19:18:02+00:00",
+                "P1Y3M22DT4H17M55S",
+                "1y 3mo 22d 4h 17m 55s",
+            ),
+            (
+                "2021-07-28T19:18:02+01:00",
+                "2020-04-06T15:00:07+01:00",
+                "P1Y3M22DT4H17M55S",
+                "1y 3mo 22d 4h 17m 55s",
+            ),
+            ("2024-07-01T13:00:00+01:00", "2024-07-01T13:00:00+02:00", "PT1H", "1h"),
+            ("2024-07-01T13:00:00+02:00", "2024-07-01T13:00:00+01:00", "PT1H", "1h"),
+        ],
+    )
+    def test_as_default_extended(self, start: str, end: str, iso: str, default: str):
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.is_zero is False
+        assert result.as_iso() == iso
+        assert result.as_default() == default
+
+    def test_as_compact_days(self):
+        start = dt.datetime(2024, 7, 1, 13, 0, 0)
+        end = dt.datetime(2025, 7, 1, 14, 1, 1)
+        result = tt.ext.Duration(start, end)
+        assert result.as_compact_days() == "365d 1h 1m 1s"
+
+    @pytest.mark.parametrize(
+        "start, end, iso, compact",
+        [
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:01", "PT1S", "1s"),
+            (
+                "2024-07-01T13:00:00",
+                "2025-08-02T14:01:01",
+                "P1Y1M1DT1H1M1S",
+                "397d 1h 1m 1s",
+            ),
+            (
+                "2024-07-01T13:00:00+00:00",
+                "2024-07-03T23:17:36+00:00",
+                "P2DT10H17M36S",
+                "2d 10h 17m 36s",
+            ),
+            (
+                "2024-07-01T13:00:00+00:00",
+                "2024-07-04T13:02:00+00:00",
+                "P3DT2M",
+                "3d 2m",
+            ),
+            ("2024-07-01", "2025-08-02", "P1Y1M1D", "397d"),
+            # microseconds
+            ("2024-07-01T13:00:00.10Z", "2024-07-01T13:00:00.20Z", "PT0.1S", "0.1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:00.5", "PT0.5S", "0.5s"),
+            ("2024-07-01T13:00:00", "2024-07-02T13:00:00.5", "P1DT0.5S", "1d 0.5s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:00.123", "PT0.123S", "0.123s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:01.123", "PT1.123S", "1.123s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:01:00.12", "PT1M0.12S", "1m 0.12s"),
+        ],
+    )
+    def test_compact_days_extended(self, start: str, end: str, iso: str, compact: str):
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.is_zero is False
+        assert result.as_iso() == iso
+        assert result.as_compact_days() == compact
+
+    def test_as_compact_weeks(self):
+        start = dt.datetime(2024, 7, 1, 13, 0, 0)
+        end = dt.datetime(2025, 7, 9, 14, 1, 1)
+        result = tt.ext.Duration(start, end)
+        assert result.as_compact_weeks() == "1y 1w 1d 1h 1m 1s"
+
+    @pytest.mark.parametrize(
+        "start, end, iso, compact",
+        [
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:01", "PT1S", "1s"),
+            (
+                "2024-07-01T13:00:00",
+                "2025-08-02T14:01:01",
+                "P1Y1M1DT1H1M1S",
+                "1y 1mo 1d 1h 1m 1s",
+            ),
+            (
+                "2024-07-01T13:00:00+00:00",
+                "2025-07-09T14:01:01+00:00",
+                "P1Y8DT1H1M1S",
+                "1y 1w 1d 1h 1m 1s",
+            ),
+            (
+                "2024-07-01T13:00:00+00:00",
+                "2025-07-08T14:01:01+00:00",
+                "P1Y7DT1H1M1S",
+                "1y 1w 1h 1m 1s",
+            ),
+            (
+                "2024-07-01T13:00:00+00:00",
+                "2025-07-07T14:01:01+00:00",
+                "P1Y6DT1H1M1S",
+                "1y 6d 1h 1m 1s",
+            ),
+            # microseconds
+            ("2024-07-01T13:00:00.10Z", "2024-07-01T13:00:00.20Z", "PT0.1S", "0.1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:00.5", "PT0.5S", "0.5s"),
+            ("2024-07-01T13:00:00", "2024-07-02T13:00:00.5", "P1DT0.5S", "1d 0.5s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:00.123", "PT0.123S", "0.123s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:01.123", "PT1.123S", "1.123s"),
+            ("2024-07-01T13:00:00", "2024-07-01T13:01:00.12", "PT1M0.12S", "1m 0.12s"),
+        ],
+    )
+    def test_compact_weeks_extended(self, start: str, end: str, iso: str, compact: str):
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.is_zero is False
+        assert result.as_iso() == iso
+        assert result.as_compact_weeks() == compact
+
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            (
+                dt.datetime(2024, 7, 1, 13, 0, 0),
+                dt.datetime(2025, 7, 1, 14, 1, 1),
+                "P1YT1H1M1S",
+            ),
+            (
+                dt.datetime(2024, 7, 1, 13, 0, 0),
+                dt.datetime(2025, 7, 9, 14, 1, 1),
+                "P1Y8DT1H1M1S",
+            ),
+        ],
+    )
+    def test_as_iso(self, start: dt.datetime, end: dt.datetime, expected: str):
+        result = tt.ext.Duration(start, end)
+        assert result.as_iso() == expected
+
+    def test_as_total_seconds(self):
+        start = dt.datetime(2024, 7, 1, 13, 0, 0)
+        end = dt.datetime(2025, 7, 1, 14, 1, 1)
+        result = tt.ext.Duration(start, end)
+        formatted = result.as_total_seconds()
+        assert formatted.endswith("s")
+        # numeric part matches int(round(total_seconds))
+        numeric = int(formatted[:-1].replace("_", ""))
+        assert numeric == int(round(result.total_seconds))
+
+    @pytest.mark.parametrize(
+        "start, end, iso, total_seconds",
+        [
+            ("2024-07-01T13:00:00", "2024-07-01T13:00:01", "PT1S", "1s"),
+            ("2024-07-01T13:00:00", "2024-07-01T14:01:01", "PT1H1M1S", "3_661s"),
+        ],
+    )
+    def test_total_seconds_extended(
+        self, start: str, end: str, iso: str, total_seconds: str
+    ):
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.is_zero is False
+        assert result.as_iso() == iso
+        assert result.as_total_seconds() == total_seconds
+
+    def test_as_custom(self):
+        start = dt.datetime(2024, 7, 1, 13, 0, 0)
+        end = dt.datetime(2025, 7, 1, 14, 1, 1)
+        dur = tt.ext.Duration(start, end)
+        result = dur.as_custom(lambda x: f"{x.years}y {x.months}mo {x.days}d")
+        assert result == "1y 0mo 0d"
+
+    @pytest.mark.parametrize(
+        "start, end, iso, custom",
+        [
+            (
+                "2024-07-01T13:00:00",
+                "2025-07-01T14:01:00",
+                "P1YT1H1M",
+                "1 year, 0 months, 0 days, 1 hour, 1 minute, 0 seconds",
+            ),
+            (
+                "2024-07-01T13:00:00",
+                "2025-08-02T14:01:01",
+                "P1Y1M1DT1H1M1S",
+                "1 year, 1 month, 1 day, 1 hour, 1 minute, 1 second",
+            ),
+        ],
+    )
+    def test_custom(self, start: str, end: str, iso: str, custom: str):
+        def show_all(d: tt.ext.Duration) -> str:
+            def multiplier(value: int | float) -> str:
+                return "" if value == 1 else "s"
+
+            return ", ".join(
+                [
+                    f"{d.years} year{multiplier(d.years)}",
+                    f"{d.months} month{multiplier(d.months)}",
+                    f"{d.days} day{multiplier(d.days)}",
+                    f"{d.hours} hour{multiplier(d.hours)}",
+                    f"{d.minutes} minute{multiplier(d.minutes)}",
+                    f"{d.formatted_seconds} second{multiplier(d.seconds)}",
+                ]
+            )
+
+        result = tt.ext.Duration(start, end)
+        assert isinstance(result, tt.ext.Duration)
+        assert result.is_zero is False
+        assert result.as_iso() == iso
+        assert result.as_custom(formatter=show_all) == custom
 
 
 class TestExtendedDateTimeParsing:
