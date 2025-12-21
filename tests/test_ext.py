@@ -1,4 +1,5 @@
 import datetime as dt
+from collections.abc import Callable
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -473,6 +474,226 @@ class TestDuration:
         assert result.is_zero is False
         assert result.as_iso() == iso
         assert result.as_custom(formatter=show_all) == expected
+
+
+class TestDateSub:
+    def test_datesub_official_docs(self):
+        date_time_values = [
+            ("1992-09-30 23:59:59", "1992-10-01 01:58:00", "hour", 1),
+            ("1992-09-30T23:59:59.012345", "1992-10-01T01:58:00.123456", "hour", 1),
+            (
+                dt.datetime(1992, 9, 30, 23, 59, 59),
+                dt.datetime(1992, 10, 1, 1, 58, 00),
+                "hour",
+                1,
+            ),
+            ("1992-09-30 23:59:59", "1992-10-01 01:58:00", "min", 118),
+            ("1992-09-30 23:59:59", "1992-10-01 01:58:00", "sec", 7081),
+        ]
+        for start, end, part, expected in date_time_values:
+            result = tt.ext.datesub(part, start, end)
+            assert result == expected
+
+        time_values = [
+            ("01:02:03", "06:01:03", "hour", 4),
+            (dt.time(1, 2, 3), dt.time(6, 1, 3), "hour", 4),
+        ]
+        for start, end, part, expected in time_values:
+            result = tt.ext.datesub(part, start, end)
+            assert result == expected
+
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            ("ref_date", "ref_date", 0),
+            #
+            ("2024-01-01", "ref_date", 0),
+            ("ref_date", "2024-01-01", 0),
+            #
+            ("2023-12-31", "ref_date", 0),
+            ("ref_date", "2023-12-31", 0),
+            #
+            ("ref_date", "2024-12-31", 0),
+            ("2024-12-31", "ref_date", 0),
+            #
+            ("ref_date", "2025-01-01", 0),
+            ("2025-01-01", "ref_date", 0),
+            #
+            ("2023-06-30", "ref_date", 1),
+            ("2023-07-01", "ref_date", 1),
+            ("2023-07-02", "ref_date", 0),
+            #
+            ("ref_date", "2023-06-30", -1),
+            ("ref_date", "2023-07-01", -1),
+            ("ref_date", "2023-07-02", 0),
+            #
+            ("ref_date", "2025-06-30", 0),
+            ("ref_date", "2025-07-01", 1),
+            ("ref_date", "2025-07-02", 1),
+            #
+            ("2025-06-30", "ref_date", 0),
+            ("2025-07-01", "ref_date", -1),
+            ("2025-07-02", "ref_date", -1),
+            #
+            ("2022-06-30", "ref_date", 2),
+            ("2022-07-01", "ref_date", 2),
+            ("2022-07-02", "ref_date", 1),
+            #
+            ("ref_date", "2026-06-30", 1),
+            ("ref_date", "2026-07-01", 2),
+            ("ref_date", "2026-07-02", 2),
+            #
+            ("1970-01-01", "ref_date", 54),
+        ],
+    )
+    def test_datesub__year(self, get_ref_date, start: str, end: str, expected: int):
+        for cast_func in self.cast_funcs():
+            start = cast_func(get_ref_date(start))
+            end = cast_func(get_ref_date(end))
+            for part in ("year", "years", "y", "yr", "yrs"):
+                result = tt.ext.datesub(part, start, end)
+                assert result == expected
+
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            ("ref_date", "ref_date", 0),
+            #
+            ("2024-06-30", "ref_date", 0),
+            ("ref_date", "2024-06-30", 0),
+            #
+            ("ref_date", "2024-07-02", 0),
+            ("2024-07-02", "ref_date", 0),
+            #
+            ("ref_date", "2024-07-07", 0),
+            ("2024-07-07", "ref_date", 0),
+            #
+            ("2024-01-01", "ref_date", 6),
+            ("ref_date", "2024-01-01", -6),
+            #
+            ("2023-12-31", "ref_date", 6),
+            ("ref_date", "2023-12-31", -6),
+            #
+            ("ref_date", "2024-12-31", 5),
+            ("2024-12-31", "ref_date", -5),
+            #
+            ("ref_date", "2025-01-01", 6),
+            ("2025-01-01", "ref_date", -6),
+            #
+            ("2023-06-30", "ref_date", 12),
+            ("2023-07-01", "ref_date", 12),
+            ("2023-07-02", "ref_date", 11),
+            #
+            ("ref_date", "2023-06-30", -12),
+            ("ref_date", "2023-07-01", -12),
+            ("ref_date", "2023-07-02", -11),
+            #
+            ("ref_date", "2025-06-30", 11),
+            ("ref_date", "2025-07-01", 12),
+            ("ref_date", "2025-07-02", 12),
+            #
+            ("2025-06-30", "ref_date", -11),
+            ("2025-07-01", "ref_date", -12),
+            ("2025-07-02", "ref_date", -12),
+            #
+            ("2022-06-30", "ref_date", 24),
+            ("2022-07-01", "ref_date", 24),
+            ("2022-07-02", "ref_date", 23),
+            #
+            ("ref_date", "2026-06-30", 23),
+            ("ref_date", "2026-07-01", 24),
+            ("ref_date", "2026-07-02", 24),
+            #
+            ("1970-01-01", "ref_date", 654),
+        ],
+    )
+    def test_datesub__month(self, get_ref_date, start: str, end: str, expected: int):
+        for cast_func in self.cast_funcs():
+            start = cast_func(get_ref_date(start))
+            end = cast_func(get_ref_date(end))
+            for part in ("month", "months", "mon", "mons"):
+                result = tt.ext.datesub(part, start, end)
+                assert result == expected
+
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            ("ref_date", "ref_date", 0),
+            #
+            ("2024-06-30", "ref_date", 1),
+            ("ref_date", "2024-06-30", -1),
+            #
+            ("ref_date", "2024-07-02", 1),
+            ("2024-07-02", "ref_date", -1),
+            #
+            ("ref_date", "2024-07-07", 6),
+            ("2024-07-07", "ref_date", -6),
+            #
+            ("2024-01-01", "ref_date", 182),
+            ("ref_date", "2024-01-01", -182),
+            #
+            ("2023-12-31", "ref_date", 183),
+            ("ref_date", "2023-12-31", -183),
+            #
+            ("ref_date", "2024-12-31", 183),
+            ("2024-12-31", "ref_date", -183),
+            #
+            ("ref_date", "2025-01-01", 184),
+            ("2025-01-01", "ref_date", -184),
+            #
+            ("2023-06-30", "ref_date", 367),
+            ("2023-07-01", "ref_date", 366),
+            ("2023-07-02", "ref_date", 365),
+            #
+            ("ref_date", "2023-06-30", -367),
+            ("ref_date", "2023-07-01", -366),
+            ("ref_date", "2023-07-02", -365),
+            #
+            ("ref_date", "2025-06-30", 364),
+            ("ref_date", "2025-07-01", 365),
+            ("ref_date", "2025-07-02", 366),
+            #
+            ("2025-06-30", "ref_date", -364),
+            ("2025-07-01", "ref_date", -365),
+            ("2025-07-02", "ref_date", -366),
+            #
+            ("2022-06-30", "ref_date", 732),
+            ("2022-07-01", "ref_date", 731),
+            ("2022-07-02", "ref_date", 730),
+            #
+            ("ref_date", "2026-06-30", 729),
+            ("ref_date", "2026-07-01", 730),
+            ("ref_date", "2026-07-02", 731),
+            #
+            ("1970-01-01", "ref_date", 19_905),
+        ],
+    )
+    def test_datesub__day(self, get_ref_date, start: str, end: str, expected: int):
+        for cast_func in self.cast_funcs():
+            start = cast_func(get_ref_date(start))
+            end = cast_func(get_ref_date(end))
+            for part in ("day", "days", "d", "dayofmonth"):
+                result = tt.ext.datesub(part, start, end)
+                assert result == expected
+
+    @staticmethod
+    def cast_funcs() -> tuple[Callable[[str], str | dt.date | dt.datetime]]:
+        return (
+            tt.ext.parse,
+            lambda x: x,
+            lambda x: dt.datetime.combine(tt.ext.parse(x), dt.datetime.min.time()),
+        )
+
+    @pytest.fixture(scope="class")
+    def get_ref_date(self, request: pytest.FixtureRequest) -> Callable[[str], str]:
+        def inner(value: str) -> str:
+            return request.getfixturevalue("ref_date") if value == "ref_date" else value
+
+        return inner
+
+    @pytest.fixture(scope="class")
+    def ref_date(self) -> str:
+        return "2024-07-01"
 
 
 class TestExtendedDateTimeParsing:

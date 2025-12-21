@@ -1,9 +1,10 @@
-__all__ = ("Duration", "parse")
+__all__ = ("Duration", "datesub", "parse")
 
 import datetime as dt
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
+import duckdb
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
 
@@ -330,6 +331,54 @@ class Duration:
 
     def __str__(self) -> str:
         return self.as_default()
+
+
+def datesub(
+    part: str,
+    start: tt.stdlib.DateTimeLike,
+    end: tt.stdlib.DateTimeLike,
+) -> int:
+    """Return the number of complete partitions between times.
+
+    Function computes the difference of fully elapsed time units between the start and
+    end date/time values using DuckDB's datesub time function for date subtraction.
+    [1]_ [2]_
+
+    References
+    ----------
+    .. [1] "Time Functions: datesub", DuckDB Documentation,
+           `<https://duckdb.org/docs/stable/sql/functions/time>`_
+    .. [2] "Date Part Functions", DuckDB Documentation,
+            `<https://duckdb.org/docs/stable/sql/functions/datepart.html>`_
+
+    Examples
+    --------
+    >>> import timeteller as tt
+    >>> start_time = "2000-01-01 00:00:00.012345"
+    >>> end_time = "2025-01-01 23:59:59.123456"
+    >>> tt.ext.datesub("decades", start_time, end_time)
+    2
+    >>> tt.ext.datesub("years", start_time, end_time)
+    25
+    >>> tt.ext.datesub("quarter", start_time, end_time)
+    100
+    >>> tt.ext.datesub("months", start_time, end_time)
+    300
+    >>> tt.ext.datesub("days", start_time, end_time)
+    9132
+    >>> tt.ext.datesub("hours", start_time, end_time)
+    219191
+    >>> tt.ext.datesub("minutes", start_time, end_time)
+    13151519
+    >>> tt.ext.datesub("seconds", start_time, end_time)
+    789091199
+
+    >>> tt.ext.datesub("days", "2024-07-01", "2024-07-07")
+    6
+    """
+    query = f"SELECT datesub('{part}', ?, ?)"
+    parameters = parse(start), parse(end)
+    return duckdb.execute(query, parameters).fetchone()[0]
 
 
 def parse(
