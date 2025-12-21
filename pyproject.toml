@@ -15,6 +15,7 @@ timeteller = "timeteller.cli:main"
 [project.optional-dependencies]
 ext = [
     "python-dateutil>=2.9.0.post0",
+    "tzdata>=2025.3",
 ]
 
 [build-system]
