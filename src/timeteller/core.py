@@ -79,12 +79,21 @@ def parse(
 
     patterns = tuple(formats) if formats is not None else STRPTIME_FORMATS
 
-    for pattern in patterns:
+    def parse_string(val: str, ptrn: str) -> dt.datetime | None:
         try:
-            return dt.datetime.strptime(value, pattern)
+            return dt.datetime.strptime(val, ptrn)
         except ValueError:
+            return None
+
+    for pattern in patterns:
+        result = parse_string(value, pattern)
+        if result is None and pattern.endswith("%S"):
+            microsecond_pattern = f"{pattern}.%f"
+            result = parse_string(value, microsecond_pattern)
+        if result is None:
             # error is expected - try next pattern
             continue
+        return result
 
     raise ValueError(f"unable to parse {value=!r}")
 
