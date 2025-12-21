@@ -115,7 +115,7 @@ class TestDuration:
         assert isinstance(result, tt.ext.Duration)
         assert result.formatted_seconds == expected
 
-    def test_zero_duration(self):
+    def test_is_zero(self):
         t = dt.datetime(2025, 6, 1, 12, 0, 0)
         result = tt.ext.Duration(t, t)
         assert result.is_zero is True
@@ -123,7 +123,7 @@ class TestDuration:
         assert result.as_default() == "0s"
 
     @pytest.mark.parametrize(
-        "start, end, iso, default",
+        "start, end, iso, expected",
         [
             ("13:00:00", "13:00:00", "PT0S", "0s"),
             ("13:00:00", "T13:00:00", "PT0S", "0s"),
@@ -140,12 +140,12 @@ class TestDuration:
             ("2024-07-01T14:00:00+02:00", "2024-07-01T13:00:00+01:00", "PT0S", "0s"),
         ],
     )
-    def test_zero_duration_extended(self, start: str, end: str, iso: str, default: str):
+    def test_is_zero_extended(self, start: str, end: str, iso: str, expected: str):
         result = tt.ext.Duration(start, end)
         assert isinstance(result, tt.ext.Duration)
         assert result.is_zero is True
         assert result.as_iso() == iso
-        assert result.as_default() == default
+        assert result.as_default() == expected
 
     @pytest.mark.parametrize(
         "start, end, expected",
@@ -169,7 +169,7 @@ class TestDuration:
         assert result.as_default() == expected
 
     @pytest.mark.parametrize(
-        "start, end, iso, default",
+        "start, end, iso, expected",
         [
             # 1x date change
             ("2024-07-01", "2025-07-01", "P1Y", "1y"),
@@ -283,12 +283,12 @@ class TestDuration:
             ("2024-07-01T13:00:00+02:00", "2024-07-01T13:00:00+01:00", "PT1H", "1h"),
         ],
     )
-    def test_as_default_extended(self, start: str, end: str, iso: str, default: str):
+    def test_as_default_extended(self, start: str, end: str, iso: str, expected: str):
         result = tt.ext.Duration(start, end)
         assert isinstance(result, tt.ext.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
-        assert result.as_default() == default
+        assert result.as_default() == expected
 
     def test_as_compact_days(self):
         start = dt.datetime(2024, 7, 1, 13, 0, 0)
@@ -297,7 +297,7 @@ class TestDuration:
         assert result.as_compact_days() == "365d 1h 1m 1s"
 
     @pytest.mark.parametrize(
-        "start, end, iso, compact",
+        "start, end, iso, expected",
         [
             ("2024-07-01T13:00:00", "2024-07-01T13:00:01", "PT1S", "1s"),
             (
@@ -328,12 +328,12 @@ class TestDuration:
             ("2024-07-01T13:00:00", "2024-07-01T13:01:00.12", "PT1M0.12S", "1m 0.12s"),
         ],
     )
-    def test_compact_days_extended(self, start: str, end: str, iso: str, compact: str):
+    def test_compact_days_extended(self, start: str, end: str, iso: str, expected: str):
         result = tt.ext.Duration(start, end)
         assert isinstance(result, tt.ext.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
-        assert result.as_compact_days() == compact
+        assert result.as_compact_days() == expected
 
     def test_as_compact_weeks(self):
         start = dt.datetime(2024, 7, 1, 13, 0, 0)
@@ -342,7 +342,7 @@ class TestDuration:
         assert result.as_compact_weeks() == "1y 1w 1d 1h 1m 1s"
 
     @pytest.mark.parametrize(
-        "start, end, iso, compact",
+        "start, end, iso, expected",
         [
             ("2024-07-01T13:00:00", "2024-07-01T13:00:01", "PT1S", "1s"),
             (
@@ -378,12 +378,12 @@ class TestDuration:
             ("2024-07-01T13:00:00", "2024-07-01T13:01:00.12", "PT1M0.12S", "1m 0.12s"),
         ],
     )
-    def test_compact_weeks_extended(self, start: str, end: str, iso: str, compact: str):
+    def test_compact_weeks_ext(self, start: str, end: str, iso: str, expected: str):
         result = tt.ext.Duration(start, end)
         assert isinstance(result, tt.ext.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
-        assert result.as_compact_weeks() == compact
+        assert result.as_compact_weeks() == expected
 
     @pytest.mark.parametrize(
         "start, end, expected",
@@ -415,20 +415,18 @@ class TestDuration:
         assert numeric == int(round(result.total_seconds))
 
     @pytest.mark.parametrize(
-        "start, end, iso, total_seconds",
+        "start, end, iso, expected",
         [
             ("2024-07-01T13:00:00", "2024-07-01T13:00:01", "PT1S", "1s"),
             ("2024-07-01T13:00:00", "2024-07-01T14:01:01", "PT1H1M1S", "3_661s"),
         ],
     )
-    def test_total_seconds_extended(
-        self, start: str, end: str, iso: str, total_seconds: str
-    ):
+    def test_total_secs_extended(self, start: str, end: str, iso: str, expected: str):
         result = tt.ext.Duration(start, end)
         assert isinstance(result, tt.ext.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
-        assert result.as_total_seconds() == total_seconds
+        assert result.as_total_seconds() == expected
 
     def test_as_custom(self):
         start = dt.datetime(2024, 7, 1, 13, 0, 0)
@@ -438,7 +436,7 @@ class TestDuration:
         assert result == "1y 0mo 0d"
 
     @pytest.mark.parametrize(
-        "start, end, iso, custom",
+        "start, end, iso, expected",
         [
             (
                 "2024-07-01T13:00:00",
@@ -454,7 +452,7 @@ class TestDuration:
             ),
         ],
     )
-    def test_custom(self, start: str, end: str, iso: str, custom: str):
+    def test_custom(self, start: str, end: str, iso: str, expected: str):
         def show_all(d: tt.ext.Duration) -> str:
             def multiplier(value: int | float) -> str:
                 return "" if value == 1 else "s"
@@ -474,7 +472,7 @@ class TestDuration:
         assert isinstance(result, tt.ext.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
-        assert result.as_custom(formatter=show_all) == custom
+        assert result.as_custom(formatter=show_all) == expected
 
 
 class TestExtendedDateTimeParsing:
