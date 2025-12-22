@@ -317,17 +317,10 @@ class Duration:
             return f"{self.formatted_seconds}{unit}"
         return f"0{unit}" if num_parts == 0 else ""
 
-    def _format_dt(self, value: dt.datetime) -> str:
-        """Return ISO date or datetime depending on time components."""
-        if value.time() == dt.time(0, 0):
-            return value.date().isoformat()
-        return value.isoformat()
-
     def __repr__(self) -> str:
-        return (
-            f"{self.__class__.__name__}"
-            f"({self._format_dt(self.start_dt)}, {self._format_dt(self.end_dt)})"
-        )
+        start = tt.stdlib.isoformat(self.start_dt)
+        end = tt.stdlib.isoformat(self.end_dt)
+        return f"{self.__class__.__name__}({start}, {end})"
 
     def __str__(self) -> str:
         return self.as_default()
