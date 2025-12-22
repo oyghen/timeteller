@@ -1,4 +1,4 @@
-__all__ = ("DateTimeLike", "STRPTIME_FORMATS", "parse", "now", "timestamp")
+__all__ = ("DateTimeLike", "STRPTIME_FORMATS", "parse", "now", "timestamp", "isoformat")
 
 import datetime as dt
 import zoneinfo
@@ -123,3 +123,14 @@ def timestamp(timezone: str | None = None, /, fmt: str | None = None) -> str:
     """Return a timestamp string with timezone info for the specified or local zone."""
     current = now(timezone)
     return current.isoformat() if fmt is None else current.strftime(fmt)
+
+
+def isoformat(value: dt.date | dt.datetime) -> str:
+    """Return ISO date when time components are zero, otherwise ISO datetime."""
+    if isinstance(value, dt.date) and not isinstance(value, dt.datetime):
+        return value.isoformat()
+
+    if (value.hour, value.minute, value.second, value.microsecond) == (0, 0, 0, 0):
+        return value.date().isoformat()
+
+    return value.isoformat()

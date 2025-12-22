@@ -350,3 +350,69 @@ class TestNowAndTimestamp:
             result = tt.stdlib.timestamp(timezone, fmt)
             assert result == expected_str
             assert tt.stdlib.parse(result) == expected_dt
+
+
+class TestIsoformat:
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (dt.date(2024, 1, 1), "2024-01-01"),
+            (dt.date(1999, 12, 31), "1999-12-31"),
+        ],
+    )
+    def test_date_input(self, value: dt.date, expected: str):
+        assert tt.stdlib.isoformat(value) == expected
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (dt.datetime(2024, 1, 1, 0, 0, 0), "2024-01-01"),
+            (dt.datetime(2024, 1, 1, 0, 0, 0, 0), "2024-01-01"),
+        ],
+    )
+    def test_datetime_midnight_naive(self, value: dt.datetime, expected: str):
+        assert tt.stdlib.isoformat(value) == expected
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (dt.datetime(2024, 1, 1, 12, 0, 0), "2024-01-01T12:00:00"),
+            (dt.datetime(2024, 1, 1, 0, 0, 1), "2024-01-01T00:00:01"),
+            (dt.datetime(2024, 1, 1, 0, 0, 0, 1), "2024-01-01T00:00:00.000001"),
+        ],
+    )
+    def test_datetime_non_midnight_naive(self, value: dt.datetime, expected: str):
+        assert tt.stdlib.isoformat(value) == expected
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (dt.datetime(2024, 1, 1, 0, 0, 0, tzinfo=dt.UTC), "2024-01-01"),
+            (
+                dt.datetime(
+                    2024, 1, 1, 0, 0, 0, tzinfo=dt.timezone(dt.timedelta(hours=2))
+                ),
+                "2024-01-01",
+            ),
+        ],
+    )
+    def test_datetime_midnight_aware(self, value: dt.datetime, expected: str):
+        assert tt.stdlib.isoformat(value) == expected
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (
+                dt.datetime(2024, 1, 1, 8, 30, tzinfo=dt.UTC),
+                "2024-01-01T08:30:00+00:00",
+            ),
+            (
+                dt.datetime(
+                    2024, 1, 1, 23, 59, 59, tzinfo=dt.timezone(dt.timedelta(hours=-5))
+                ),
+                "2024-01-01T23:59:59-05:00",
+            ),
+        ],
+    )
+    def test_datetime_non_midnight_aware(self, value: dt.datetime, expected: str):
+        assert tt.stdlib.isoformat(value) == expected
