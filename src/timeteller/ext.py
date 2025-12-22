@@ -13,7 +13,7 @@ import timeteller as tt
 
 @dataclass(frozen=True, slots=True)
 class Duration:
-    """Immutable duration object representing the difference between two dates/times.
+    """Non-negative length of time that elapsed between two dates or times.
 
     Examples
     --------
