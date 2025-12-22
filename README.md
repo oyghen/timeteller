@@ -10,5 +10,5 @@
 </div>
 
 ```shell
-pip install timeteller
+pip install 'timeteller[ext,cli]'
 ```

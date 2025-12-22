@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-timeteller = "timeteller.cli:main"
+timeteller = "timeteller._cli_entry:main"
 
 [project.optional-dependencies]
 ext = [
