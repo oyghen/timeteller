@@ -39,16 +39,16 @@ def version(
 
 @app.command()
 def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) -> None:
-    """Print duration summary between two dates or times."""
+    """Show duration summary between two dates or times."""
     start_dt = tt.ext.parse(start)
+    start_iso = tt.stdlib.isoformat(start_dt)
+    is_date_fmt = len(start_iso) == len("YYYY-MM-DD")
     if end is None:
-        start_str = tt.stdlib.isoformat(start_dt)
-        is_date = len(start_str) == len("YYYY-MM-DD")
-        end_dt = dt.date.today() if is_date else dt.datetime.now()
+        end_dt = dt.date.today() if is_date_fmt else dt.datetime.now()
     else:
         end_dt = tt.ext.parse(end)
 
-    dur = tt.ext.Duration(start_dt, end_dt)
+    d = tt.ext.Duration(start_dt, end_dt)
 
     gray = "#666666"
     table = Table(header_style=gray, style=gray)
@@ -56,11 +56,15 @@ def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) 
     table.add_column("value", justify="right", style="#FFEC71", no_wrap=True)
     table.add_column("comment", justify="right", style=gray, no_wrap=True)
 
-    for label, date in [("start", dur.start_dt), ("end", dur.end_dt)]:
-        table.add_row(label, tt.stdlib.isoformat(date), date.strftime("%A"))
-    table.add_row("duration", str(dur), "elapsed time")
+    table.add_row("start", tt.stdlib.isoformat(d.start_dt), d.start_dt.strftime("%A"))
+    if end is None:
+        comment = "today" if is_date_fmt else "now"
+    else:
+        comment = d.end_dt.strftime("%A")
+    table.add_row("end", tt.stdlib.isoformat(d.end_dt), comment)
+    table.add_row("duration", str(d), "elapsed time")
 
-    num_days = tt.ext.datesub("days", dur.start_dt, dur.end_dt) + 1
+    num_days = tt.ext.datesub("days", d.start_dt, d.end_dt) + 1
     num_days_text = "1 day" if num_days == 1 else f"{num_days:_} days"
     table.add_row("day count", num_days_text, "start/end incl.")
 
