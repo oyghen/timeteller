@@ -30,11 +30,9 @@ def version(
         False, "--version", "-v", help="Show app version and exit."
     ),
 ) -> None:
-    """Show the application version or a usage hint when no command is provided."""
     if show:
         typer.echo(f"{tt.__name__} {tt.__version__}")
         raise typer.Exit()
-    typer.echo("No command provided. Run with --help to see available commands.")
 
 
 @app.command()
