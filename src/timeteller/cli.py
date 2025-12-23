@@ -24,6 +24,19 @@ END_ARG = typer.Argument(
 )
 
 
+@app.callback(invoke_without_command=True)
+def version(
+    show: bool = typer.Option(
+        False, "--version", "-v", help="Show app version and exit."
+    ),
+) -> None:
+    """Show the application version or a usage hint when no command is provided."""
+    if show:
+        typer.echo(f"{tt.__name__} {tt.__version__}")
+        raise typer.Exit()
+    typer.echo("No command provided. Run with --help to see available commands.")
+
+
 @app.command()
 def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) -> None:
     """Print duration summary between two dates or times."""
