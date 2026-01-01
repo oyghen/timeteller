@@ -1,4 +1,4 @@
-__all__ = ("Duration", "datesub", "parse")
+__all__ = ("Duration", "datesub", "parse", "offset")
 
 import datetime as dt
 from collections.abc import Callable, Sequence
@@ -383,3 +383,10 @@ def parse(
         return tt.stdlib.parse(value, formats)
     except ValueError:
         return parser.parse(value, default=dt.datetime(1900, 1, 1, 0, 0, 0, 0))
+
+
+def offset(reference: tt.stdlib.DateTimeLike, value: int, unit: str) -> dt.datetime:
+    """Return a datetime offset by a given number of time units from reference."""
+    query = f"SELECT ? + INTERVAL '{value}' {unit.strip().upper()}"
+    parameters = (parse(reference),)
+    return duckdb.execute(query, parameters).fetchone()[0]

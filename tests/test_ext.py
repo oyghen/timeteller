@@ -2,6 +2,7 @@ import datetime as dt
 from collections.abc import Callable
 from dataclasses import FrozenInstanceError
 
+import duckdb
 import pytest
 
 import timeteller as tt
@@ -722,3 +723,78 @@ class TestExtendedDateTimeParsing:
     )
     def test_extended_parse(self, value: str, expected: dt.datetime):
         assert tt.ext.parse(value) == expected
+
+
+class TestOffset:
+    @pytest.mark.parametrize(
+        "unit, value, expected",
+        [
+            # add
+            ("day", 1, dt.datetime(2020, 1, 16, 0, 0)),
+            ("days", 15, dt.datetime(2020, 1, 30, 0, 0)),
+            ("days", 16, dt.datetime(2020, 1, 31, 0, 0)),
+            ("days", 365, dt.datetime(2021, 1, 14, 0, 0)),
+            ("weeks", 3, dt.datetime(2020, 2, 5, 0, 0)),
+            ("month", 1, dt.datetime(2020, 2, 15, 0, 0)),
+            ("years", 2, dt.datetime(2022, 1, 15, 0, 0)),
+            ("decade", 1, dt.datetime(2030, 1, 15, 0, 0)),
+            ("quarter", 7, dt.datetime(2021, 10, 15, 0, 0)),
+            # sub
+            ("day", -1, dt.datetime(2020, 1, 14, 0, 0)),
+            ("day", -14, dt.datetime(2020, 1, 1, 0, 0)),
+            ("days", -15, dt.datetime(2019, 12, 31, 0, 0)),
+            ("days", -365, dt.datetime(2019, 1, 15, 0, 0)),
+            ("weeks", -3, dt.datetime(2019, 12, 25, 0, 0)),
+            ("month", -1, dt.datetime(2019, 12, 15, 0, 0)),
+            ("years", -2, dt.datetime(2018, 1, 15, 0, 0)),
+            ("decade", -1, dt.datetime(2010, 1, 15, 0, 0)),
+            ("quarter", -7, dt.datetime(2018, 4, 15, 0, 0)),
+        ],
+    )
+    def test_offset(self, unit: str, value: int, expected: dt.datetime):
+        ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
+        result = tt.ext.offset(ref_dt, value, unit)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "unit, value",
+        [
+            ("days", 0),
+            ("days", 3),
+            ("days", -1),
+            ("weeks", 2),
+            ("hours", 5),
+            ("minutes", 90),
+            ("seconds", 30),
+            ("microseconds", 1),
+        ],
+    )
+    def test_timedelta_units_with_datetime(self, unit: str, value: int):
+        ref_dt = dt.datetime(2020, 1, 1, 12, 0, 0)
+        expected = ref_dt + dt.timedelta(**{unit: value})
+        assert tt.ext.offset(ref_dt, value, unit) == expected
+
+    @pytest.mark.parametrize(
+        "reference, expected",
+        [
+            ("2020-01-01T12:00:00", dt.datetime(2020, 1, 1, 12, 0, 0)),
+            ("2020-01-01", dt.datetime(2020, 1, 1, 0, 0, 0)),
+            (dt.date(2020, 1, 2), dt.datetime(2020, 1, 2, 0, 0, 0)),
+        ],
+    )
+    def test_string_and_date_inputs(
+        self,
+        reference: tt.stdlib.DateTimeLike,
+        expected: dt.datetime,
+    ):
+        assert tt.ext.offset(reference, 0, "days") == expected
+
+    def test_unit_case_and_plural_handling(self):
+        ref_dt = dt.datetime(2021, 6, 1, 8, 0, 0)
+        assert tt.ext.offset(ref_dt, 1, "Days") == ref_dt + dt.timedelta(days=1)
+        assert tt.ext.offset(ref_dt, 2, "  HOURS  ") == ref_dt + dt.timedelta(hours=2)
+        assert tt.ext.offset(ref_dt, -3, "MiNuTeS") == ref_dt + dt.timedelta(minutes=-3)
+
+    def test_invalid_unit_raises_value_error(self):
+        with pytest.raises(duckdb.ConversionException):
+            tt.ext.offset(dt.datetime.now(), 1, "bad_value")
