@@ -75,16 +75,14 @@ def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) 
 
 @app.command()
 def datesub(
-    part: str = typer.Argument(
-        help="Time unit (e.g., decades, years, quarters, months, days)"
-    ),
     start: dt.datetime = START_ARG,
     end: dt.datetime | None = END_ARG,
+    unit: str = typer.Option("days", help="Time unit (e.g., decades, years, months)"),
 ) -> None:
     """Show the difference between two dates or times in complete time units.
 
     Example:
-    $ timeteller datesub decades 1991-02-20
+    $ timeteller datesub --unit decades 1991-02-20
     """
     start_dt = tt.ext.parse(start)
     start_iso = tt.stdlib.isoformat(start_dt)
@@ -94,7 +92,7 @@ def datesub(
     else:
         end_dt = tt.ext.parse(end)
 
-    result = tt.ext.datesub(part, start_dt, end_dt)
+    result = tt.ext.datesub(unit, start_dt, end_dt)
 
     gray = "#666666"
     table = Table(header_style=gray, style=gray)
@@ -108,7 +106,7 @@ def datesub(
     else:
         comment = end_dt.strftime("%A")
     table.add_row("end", tt.stdlib.isoformat(end_dt), comment)
-    table.add_row("datesub", f"{result:_}", part)
+    table.add_row("datesub", f"{result:_}", unit)
 
     console.print(table)
 
