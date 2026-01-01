@@ -331,7 +331,7 @@ def datesub(
     start: tt.stdlib.DateTimeLike,
     end: tt.stdlib.DateTimeLike,
 ) -> int:
-    """Return the number of complete partitions between times.
+    """Return the difference between two dates or times in complete time units.
 
     Function computes the difference of fully elapsed time units between the start and
     end date/time values using DuckDB's datesub time function for date subtraction.
