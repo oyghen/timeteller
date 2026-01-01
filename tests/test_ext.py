@@ -727,6 +727,26 @@ class TestExtendedDateTimeParsing:
 
 class TestOffset:
     @pytest.mark.parametrize(
+        "unit",
+        [
+            "microseconds",
+            "seconds",
+            "minutes",
+            "hours",
+            "days",
+            "weeks",
+            "months",
+            "quarter",
+            "years",
+            "decade",
+        ],
+    )
+    def test_zero_offset(self, unit: str):
+        ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
+        result = tt.ext.offset(ref_dt, 0, unit)
+        assert result == dt.datetime(2020, 1, 15, 0, 0, 0)
+
+    @pytest.mark.parametrize(
         "unit, value, expected",
         [
             # add
@@ -759,7 +779,6 @@ class TestOffset:
     @pytest.mark.parametrize(
         "unit, value",
         [
-            ("days", 0),
             ("days", 3),
             ("days", -1),
             ("weeks", 2),
