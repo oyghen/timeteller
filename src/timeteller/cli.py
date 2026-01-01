@@ -37,7 +37,11 @@ def version(
 
 @app.command()
 def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) -> None:
-    """Show duration summary between two dates or times."""
+    """Show duration summary between two dates or times.
+
+    Example:
+    $ timeteller duration 1991-02-20
+    """
     start_dt = tt.ext.parse(start)
     start_iso = tt.stdlib.isoformat(start_dt)
     is_date_fmt = len(start_iso) == len("YYYY-MM-DD")

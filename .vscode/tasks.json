@@ -12,7 +12,7 @@
         {
             "label": "pytest",
             "type": "shell",
-            "command": "uv run pytest --doctest-modules --verbose",
+            "command": "uv run pytest --verbose --doctest-modules --ignore=user",
             "problemMatcher": [
                 "$python"
             ]
