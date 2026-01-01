@@ -13,13 +13,13 @@ app = typer.Typer(add_completion=False)
 START_ARG = typer.Argument(
     ...,
     formats=["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"],
-    help="Specify start date or time.",
+    help="Start date/time.",
 )
 
 END_ARG = typer.Argument(
     None,
     formats=["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"],
-    help="Specify end date or time.",
+    help="End date/time.",
     show_default="today/now",
 )
 
@@ -69,6 +69,46 @@ def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) 
     num_days = tt.ext.datesub("days", d.start_dt, d.end_dt) + 1
     num_days_text = "1 day" if num_days == 1 else f"{num_days:_} days"
     table.add_row("day count", num_days_text, "start/end incl.")
+
+    console.print(table)
+
+
+@app.command()
+def datesub(
+    part: str = typer.Argument(
+        help="Time unit (e.g., decades, years, quarters, months, days)"
+    ),
+    start: dt.datetime = START_ARG,
+    end: dt.datetime | None = END_ARG,
+) -> None:
+    """Show the difference between two dates or times in complete time units.
+
+    Example:
+    $ timeteller datesub decades 1991-02-20
+    """
+    start_dt = tt.ext.parse(start)
+    start_iso = tt.stdlib.isoformat(start_dt)
+    is_date_fmt = len(start_iso) == len("YYYY-MM-DD")
+    if end is None:
+        end_dt = dt.date.today() if is_date_fmt else dt.datetime.now()
+    else:
+        end_dt = tt.ext.parse(end)
+
+    result = tt.ext.datesub(part, start_dt, end_dt)
+
+    gray = "#666666"
+    table = Table(header_style=gray, style=gray)
+    table.add_column("", justify="left", style="#FFB270", no_wrap=True)
+    table.add_column("value", justify="right", style="#FFEC71", no_wrap=True)
+    table.add_column("comment", justify="right", style=gray, no_wrap=True)
+
+    table.add_row("start", tt.stdlib.isoformat(start_dt), start_dt.strftime("%A"))
+    if end is None:
+        comment = "today" if is_date_fmt else "now"
+    else:
+        comment = end_dt.strftime("%A")
+    table.add_row("end", tt.stdlib.isoformat(end_dt), comment)
+    table.add_row("datesub", f"{result:_}", part)
 
     console.print(table)
 
