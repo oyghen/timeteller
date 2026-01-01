@@ -24,6 +24,14 @@ END_ARG = typer.Argument(
 )
 
 
+REFERENCE_ARG = typer.Argument(
+    ...,
+    help=(
+        "Reference date/time. Use: today, now, or (%Y-%m-%d|%Y-%m-%dT%H:%M:%S) format."
+    ),
+)
+
+
 @app.callback(invoke_without_command=True)
 def version(
     show: bool = typer.Option(
@@ -107,6 +115,53 @@ def datesub(
         comment = end_dt.strftime("%A")
     table.add_row("end", tt.stdlib.isoformat(end_dt), comment)
     table.add_row("datesub", f"{result:_}", unit)
+
+    console.print(table)
+
+
+@app.command()
+def offset(
+    reference: str = REFERENCE_ARG,
+    operation: str = typer.Argument(help="Operation to perform. Use 'add' or 'sub'."),
+    value: int = typer.Argument(help="Number of time units to offset (>= 0)."),
+    unit: str = typer.Argument(help="Time unit (e.g., decades, years, months, days)"),
+) -> None:
+    """Show date or time offset by adding or subtracting specified time units.
+
+    Example:
+    $ timeteller offset 1991-02-20 add 3 decades
+    $ timeteller offset today add 3 days
+    $ timeteller offset now sub 2 hours
+    """
+    token = str(reference).strip().lower()
+
+    if token == "today":
+        ref_dt = dt.date.today()
+    elif token == "now":
+        ref_dt = dt.datetime.now()
+    else:
+        ref_dt = tt.ext.parse(reference)
+
+    op = operation.lower()
+    if op not in {"add", "sub"}:
+        raise typer.BadParameter("Operation must be 'add' or 'sub'")
+    offset_value = value if op == "add" else -value
+
+    offset_dt = tt.ext.offset(ref_dt, offset_value, unit)
+
+    gray = "#666666"
+    table = Table(header_style=gray, style=gray)
+    table.add_column("", justify="left", style="#FFB270", no_wrap=True)
+    table.add_column("value", justify="right", style="#FFEC71", no_wrap=True)
+    table.add_column("comment", justify="right", style=gray, no_wrap=True)
+
+    table.add_row("reference", tt.stdlib.isoformat(ref_dt), ref_dt.strftime("%A"))
+    table.add_row("offset", tt.stdlib.isoformat(offset_dt), offset_dt.strftime("%A"))
+
+    d = tt.ext.Duration(ref_dt, offset_dt)
+    num_days = tt.ext.datesub("days", d.start_dt, d.end_dt) + 1
+    num_days_text = "1 day" if num_days == 1 else f"{num_days:_} days"
+    table.add_row("day count", num_days_text, "ref/off incl.")
 
     console.print(table)
 
