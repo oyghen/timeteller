@@ -6,7 +6,7 @@ def main() -> None:
         from timeteller import cli
     except (ImportError, ModuleNotFoundError) as exc:
         print(
-            "CLI dependencies missing. Use: pip install 'timeteller[ext,cli]'",
+            "CLI dependencies missing. Use: uv tool install 'timeteller[ext,cli]'",
             file=sys.stderr,
         )
         raise SystemExit(2) from exc

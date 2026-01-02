@@ -10,5 +10,5 @@
 </div>
 
 ```shell
-pip install 'timeteller[ext,cli]'
+uv tool install 'timeteller[ext,cli]'
 ```
