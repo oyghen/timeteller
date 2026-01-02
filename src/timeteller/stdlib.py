@@ -7,6 +7,7 @@ __all__ = (
     "isoformat",
     "last_day",
     "offset",
+    "range",
 )
 
 import calendar
@@ -201,3 +202,22 @@ def count(reference: DateTimeLike, value: int, unit: str) -> Iterator[dt.datetim
     while True:
         yield current
         current = current + delta
+
+
+def range(
+    start: DateTimeLike,
+    end: DateTimeLike,
+    step: int,
+    unit: str,
+) -> Iterator[dt.datetime]:
+    """Return an iterator of datetimes from start to end at fixed unit steps."""
+    start_dt = parse(start)
+    end_dt = parse(end)
+    if start_dt > end_dt:
+        start_dt, end_dt = end_dt, start_dt
+
+    gen = count(start_dt, step, unit)
+    for current in gen:
+        yield current
+        if current >= end_dt:
+            break

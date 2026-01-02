@@ -670,3 +670,69 @@ class TestCount:
             next(iterator)
         result = next(iterator)
         assert result == dt.datetime(2024, 4, 10)
+
+
+class TestRange:
+    @pytest.mark.parametrize(
+        "start, end, step, unit, expected",
+        [
+            (
+                "2023-01-01",
+                "2023-01-03",
+                1,
+                "days",
+                [
+                    dt.datetime(2023, 1, 1),
+                    dt.datetime(2023, 1, 2),
+                    dt.datetime(2023, 1, 3),
+                ],
+            ),
+            (
+                "2023-01-01T00:00:00",
+                "2023-01-01T12:00:00",
+                6,
+                "hours",
+                [
+                    dt.datetime(2023, 1, 1, 0, 0),
+                    dt.datetime(2023, 1, 1, 6, 0),
+                    dt.datetime(2023, 1, 1, 12, 0),
+                ],
+            ),
+        ],
+    )
+    def test_basic_range(
+        self,
+        start: tt.stdlib.DateTimeLike,
+        end: tt.stdlib.DateTimeLike,
+        step: int,
+        unit: str,
+        expected: list[dt.datetime],
+    ):
+        result = list(tt.stdlib.range(start, end, step, unit))
+        assert result == expected
+
+    def test_start_after_end_is_normalized(self):
+        result = list(tt.stdlib.range("2023-01-03", "2023-01-01", 1, "days"))
+        expected = [
+            dt.datetime(2023, 1, 1),
+            dt.datetime(2023, 1, 2),
+            dt.datetime(2023, 1, 3),
+        ]
+        assert result == expected
+
+    def test_single_value_when_start_equals_end(self):
+        result = list(tt.stdlib.range("2023-01-01", "2023-01-01", 1, "days"))
+        assert result == [dt.datetime(2023, 1, 1)]
+
+    def test_result_is_iterator_of_datetimes(self):
+        result = tt.stdlib.range("2023-01-01", "2023-01-02", 1, "days")
+        assert isinstance(result, Iterator)
+        for value in result:
+            assert isinstance(value, dt.datetime)
+
+    def test_end_is_inclusive(self):
+        """End value is included when it falls exactly on a step."""
+        result = list(
+            tt.stdlib.range("2023-01-01T00:00:00", "2023-01-01T02:00:00", 1, "hours")
+        )
+        assert result[-1] == dt.datetime(2023, 1, 1, 2, 0)
