@@ -497,7 +497,7 @@ class TestOffset:
     @pytest.mark.parametrize(
         "unit, value, expected",
         [
-            # add
+            # add - date ahead
             ("weeks", 3, dt.datetime(2020, 2, 5, 0, 0)),
             ("days", 1, dt.datetime(2020, 1, 16, 0, 0)),
             ("days", 15, dt.datetime(2020, 1, 30, 0, 0)),
@@ -508,7 +508,7 @@ class TestOffset:
             ("seconds", 45, dt.datetime(2020, 1, 15, 0, 0, 45)),
             ("microseconds", 500, dt.datetime(2020, 1, 15, 0, 0, 0, 500)),
             ("milliseconds", 1000, dt.datetime(2020, 1, 15, 0, 0, 1)),
-            # sub
+            # sub - date ago
             ("weeks", -3, dt.datetime(2019, 12, 25, 0, 0)),
             ("days", -1, dt.datetime(2020, 1, 14, 0, 0)),
             ("days", -14, dt.datetime(2020, 1, 1, 0, 0)),
@@ -524,6 +524,44 @@ class TestOffset:
     def test_offset(self, unit: str, value: int, expected: dt.datetime):
         ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
         result = tt.stdlib.offset(ref_dt, value, unit)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "value, reference, expected",
+        [
+            # same date as reference
+            (0, dt.date(2022, 1, 1), dt.datetime(2022, 1, 1)),
+            # add - date ahead
+            (1, dt.date(2022, 1, 1), dt.datetime(2022, 1, 2)),
+            (2, dt.date(2022, 1, 1), dt.datetime(2022, 1, 3)),
+            (3, dt.date(2022, 1, 1), dt.datetime(2022, 1, 4)),
+            (7, dt.date(2022, 8, 1), dt.datetime(2022, 8, 8)),
+            (30, dt.date(2022, 8, 1), dt.datetime(2022, 8, 31)),
+            (27, dt.date(2022, 2, 1), dt.datetime(2022, 2, 28)),
+            (28, dt.date(2022, 2, 1), dt.datetime(2022, 3, 1)),
+            (27, dt.date(2020, 2, 1), dt.datetime(2020, 2, 28)),
+            (28, dt.date(2020, 2, 1), dt.datetime(2020, 2, 29)),
+            (29, dt.date(2020, 2, 1), dt.datetime(2020, 3, 1)),
+            # sub - date ago
+            (-1, dt.date(2022, 1, 1), dt.datetime(2021, 12, 31)),
+            (-2, dt.date(2022, 1, 1), dt.datetime(2021, 12, 30)),
+            (-3, dt.date(2022, 1, 1), dt.datetime(2021, 12, 29)),
+            (-7, dt.date(2022, 8, 1), dt.datetime(2022, 7, 25)),
+            (-30, dt.date(2022, 8, 1), dt.datetime(2022, 7, 2)),
+            (-27, dt.date(2022, 2, 1), dt.datetime(2022, 1, 5)),
+            (-28, dt.date(2022, 2, 1), dt.datetime(2022, 1, 4)),
+            (-27, dt.date(2020, 2, 1), dt.datetime(2020, 1, 5)),
+            (-28, dt.date(2020, 2, 1), dt.datetime(2020, 1, 4)),
+            (-29, dt.date(2020, 2, 1), dt.datetime(2020, 1, 3)),
+        ],
+    )
+    def test_offset_date_type(
+        self,
+        value: int,
+        reference: dt.date,
+        expected: dt.datetime,
+    ):
+        result = tt.stdlib.offset(reference, value, "days")
         assert result == expected
 
     @pytest.mark.parametrize("value", ["1", 1.0, None, [], {}])
