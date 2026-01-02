@@ -12,7 +12,7 @@ __all__ = (
 import calendar
 import datetime as dt
 import zoneinfo
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Final, TypeAlias
 
 DateTimeLike: TypeAlias = str | dt.time | dt.date | dt.datetime
@@ -175,3 +175,29 @@ def offset(reference: DateTimeLike, value: int, unit: str) -> dt.datetime:
     ref_dt = parse(reference)
 
     return ref_dt + dt.timedelta(**{unit: value})
+
+
+def count(reference: DateTimeLike, value: int, unit: str) -> Iterator[dt.datetime]:
+    """Return an iterator of datetimes from reference, stepping by value and unit."""
+    if not isinstance(value, int):
+        raise TypeError(f"unsupported type {type(value).__name__!r}; expected int")
+
+    valid_units = {
+        "weeks",
+        "days",
+        "hours",
+        "minutes",
+        "seconds",
+        "microseconds",
+        "milliseconds",
+    }
+    if unit not in valid_units:
+        message = f"invalid choice {unit!r}; expected a value from {valid_units!r}"
+        raise ValueError(message)
+
+    delta = dt.timedelta(**{unit: value})
+    current = parse(reference)
+
+    while True:
+        yield current
+        current = current + delta

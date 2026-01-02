@@ -1,6 +1,8 @@
 import datetime as dt
+import itertools
 import re
 import zoneinfo
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -573,3 +575,98 @@ class TestOffset:
     def test_invalid_unit(self, unit: str):
         with pytest.raises(ValueError, match="invalid choice .*; expected a value .*"):
             tt.stdlib.offset("2020-01-15", 1, unit)
+
+
+class TestCount:
+    def test_count_forward(self):
+        reference = dt.date(2022, 1, 1)
+        seq = tt.stdlib.count(reference, 1, "days")
+        result = list(itertools.islice(seq, 3))
+        expected = [
+            dt.datetime(2022, 1, 1),
+            dt.datetime(2022, 1, 2),
+            dt.datetime(2022, 1, 3),
+        ]
+        assert result == expected
+
+    def test_count_backward(self):
+        reference = dt.date(2022, 1, 1)
+        seq = tt.stdlib.count(reference, -1, "days")
+        result = list(itertools.islice(seq, 3))
+        expected = [
+            dt.datetime(2022, 1, 1),
+            dt.datetime(2021, 12, 31),
+            dt.datetime(2021, 12, 30),
+        ]
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "reference, value, unit, expected_first, expected_second",
+        [
+            (
+                dt.datetime(2024, 1, 1, 0, 0),
+                1,
+                "days",
+                dt.datetime(2024, 1, 1),
+                dt.datetime(2024, 1, 2),
+            ),
+            (
+                dt.datetime(2024, 1, 1, 12, 0),
+                2,
+                "hours",
+                dt.datetime(2024, 1, 1, 12, 0),
+                dt.datetime(2024, 1, 1, 14, 0),
+            ),
+            (
+                dt.date(2024, 1, 1),
+                1,
+                "weeks",
+                dt.datetime(2024, 1, 1),
+                dt.datetime(2024, 1, 8),
+            ),
+        ],
+    )
+    def test_basic_progression(
+        self,
+        reference: tt.stdlib.DateTimeLike,
+        value: int,
+        unit: str,
+        expected_first: dt.datetime,
+        expected_second: dt.datetime,
+    ) -> None:
+        iterator = tt.stdlib.count(reference, value, unit)
+
+        first = next(iterator)
+        second = next(iterator)
+
+        assert first == expected_first
+        assert second == expected_second
+
+    @pytest.mark.parametrize("value", [0, -1, -5])
+    def test_zero_and_negative_steps(self, value: int) -> None:
+        reference = dt.datetime(2024, 1, 1)
+        iterator = tt.stdlib.count(reference, value, "days")
+
+        first = next(iterator)
+        second = next(iterator)
+
+        assert first == reference
+        assert second == reference + dt.timedelta(days=value)
+
+    @pytest.mark.parametrize("unit", ["day", "month", "years", "foo", ""])
+    def test_invalid_unit_raises_value_error(self, unit: str) -> None:
+        with pytest.raises(ValueError):
+            next(tt.stdlib.count(dt.datetime(2024, 1, 1), 1, unit))
+
+    @pytest.mark.parametrize("value", [1.5, "1", None])
+    def test_invalid_value_type_raises_type_error(self, value: Any) -> None:
+        with pytest.raises(TypeError):
+            next(tt.stdlib.count(dt.datetime(2024, 1, 1), value, "days"))
+
+    def test_iterator_is_infinite(self) -> None:
+        iterator = tt.stdlib.count(dt.datetime(2024, 1, 1), 1, "days")
+        assert isinstance(iterator, Iterator)
+        for _ in range(100):
+            next(iterator)
+        result = next(iterator)
+        assert result == dt.datetime(2024, 4, 10)
