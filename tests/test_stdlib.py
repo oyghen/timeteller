@@ -416,3 +416,60 @@ class TestIsoformat:
     )
     def test_datetime_non_midnight_aware(self, value: dt.datetime, expected: str):
         assert tt.stdlib.isoformat(value) == expected
+
+
+class TestLastDay:
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            ("2022-01-01", dt.datetime(2022, 1, 31)),
+            ("2022-02-01", dt.datetime(2022, 2, 28)),
+            ("2022-03-01", dt.datetime(2022, 3, 31)),
+            ("2022-04-01", dt.datetime(2022, 4, 30)),
+            ("2022-05-01", dt.datetime(2022, 5, 31)),
+            ("2022-06-01", dt.datetime(2022, 6, 30)),
+            ("2022-07-01", dt.datetime(2022, 7, 31)),
+            ("2022-08-01", dt.datetime(2022, 8, 31)),
+            ("2022-09-01", dt.datetime(2022, 9, 30)),
+            ("2022-10-01", dt.datetime(2022, 10, 31)),
+            ("2022-11-01", dt.datetime(2022, 11, 30)),
+            ("2022-12-01", dt.datetime(2022, 12, 31)),
+            ("1970-01-01", dt.datetime(1970, 1, 31)),
+            ("1970-01-15", dt.datetime(1970, 1, 31)),
+            ("1970-01-31", dt.datetime(1970, 1, 31)),
+            ("2024-02-02", dt.datetime(2024, 2, 29)),  # leap year
+            ("2020-02-02", dt.datetime(2020, 2, 29)),  # leap year
+            ("2022-02-03", dt.datetime(2022, 2, 28)),
+            ("2000-02-04", dt.datetime(2000, 2, 29)),  # leap year
+            ("1900-02-05", dt.datetime(1900, 2, 28)),
+            ("2012-02-27", dt.datetime(2012, 2, 29)),  # leap year
+            ("2012-02-28", dt.datetime(2012, 2, 29)),  # leap year
+            ("2012-02-29", dt.datetime(2012, 2, 29)),  # leap year
+        ],
+    )
+    def test_last_day_string(self, value: str, expected: dt.datetime):
+        assert tt.stdlib.last_day(value) == expected
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (dt.datetime(2023, 1, 15), dt.datetime(2023, 1, 31)),
+            (dt.datetime(2023, 2, 10), dt.datetime(2023, 2, 28)),
+            (dt.datetime(2024, 2, 1), dt.datetime(2024, 2, 29)),  # leap year
+            (dt.datetime(2023, 4, 30), dt.datetime(2023, 4, 30)),
+        ],
+    )
+    def test_last_day_datetime(self, value: dt.datetime, expected: dt.datetime):
+        assert tt.stdlib.last_day(value) == expected
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [
+            (
+                dt.datetime(2023, 1, 15, 12, 0, tzinfo=dt.UTC),
+                dt.datetime(2023, 1, 31, 0, 0, tzinfo=dt.UTC),
+            )
+        ],
+    )
+    def test_last_day_timezone_aware(self, value: dt.datetime, expected: dt.datetime):
+        assert tt.stdlib.last_day(value) == expected

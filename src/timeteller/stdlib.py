@@ -1,5 +1,14 @@
-__all__ = ("DateTimeLike", "STRPTIME_FORMATS", "parse", "now", "timestamp", "isoformat")
+__all__ = (
+    "DateTimeLike",
+    "STRPTIME_FORMATS",
+    "parse",
+    "now",
+    "timestamp",
+    "isoformat",
+    "last_day",
+)
 
+import calendar
 import datetime as dt
 import zoneinfo
 from collections.abc import Sequence
@@ -134,3 +143,11 @@ def isoformat(value: dt.date | dt.datetime) -> str:
         return value.date().isoformat()
 
     return value.isoformat()
+
+
+def last_day(value: DateTimeLike) -> dt.datetime:
+    """Return the last day of the month which the given date belongs to."""
+    value_dt = parse(value)
+    tz = getattr(value_dt, "tzinfo", None)
+    _, day_count = calendar.monthrange(value_dt.year, value_dt.month)
+    return dt.datetime(value_dt.year, value_dt.month, day_count, tzinfo=tz)
