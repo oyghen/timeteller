@@ -6,6 +6,7 @@ __all__ = (
     "timestamp",
     "isoformat",
     "last_day",
+    "offset",
 )
 
 import calendar
@@ -151,3 +152,26 @@ def last_day(value: DateTimeLike) -> dt.datetime:
     tz = getattr(value_dt, "tzinfo", None)
     _, day_count = calendar.monthrange(value_dt.year, value_dt.month)
     return dt.datetime(value_dt.year, value_dt.month, day_count, tzinfo=tz)
+
+
+def offset(reference: DateTimeLike, value: int, unit: str) -> dt.datetime:
+    """Return a datetime offset by a given number of time units from reference."""
+    if not isinstance(value, int):
+        raise TypeError(f"unsupported type {type(value).__name__!r}; expected int")
+
+    valid_units = {
+        "weeks",
+        "days",
+        "hours",
+        "minutes",
+        "seconds",
+        "microseconds",
+        "milliseconds",
+    }
+    if unit not in valid_units:
+        message = f"invalid choice {unit!r}; expected a value from {valid_units!r}"
+        raise ValueError(message)
+
+    ref_dt = parse(reference)
+
+    return ref_dt + dt.timedelta(**{unit: value})

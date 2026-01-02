@@ -1,6 +1,7 @@
 import datetime as dt
 import re
 import zoneinfo
+from typing import Any
 
 import pytest
 import time_machine
@@ -473,3 +474,64 @@ class TestLastDay:
     )
     def test_last_day_timezone_aware(self, value: dt.datetime, expected: dt.datetime):
         assert tt.stdlib.last_day(value) == expected
+
+
+class TestOffset:
+    @pytest.mark.parametrize(
+        "unit",
+        [
+            "weeks",
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "microseconds",
+            "milliseconds",
+        ],
+    )
+    def test_zero_offset(self, unit: str):
+        ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
+        result = tt.stdlib.offset(ref_dt, 0, unit)
+        assert result == dt.datetime(2020, 1, 15, 0, 0, 0)
+
+    @pytest.mark.parametrize(
+        "unit, value, expected",
+        [
+            # add
+            ("weeks", 3, dt.datetime(2020, 2, 5, 0, 0)),
+            ("days", 1, dt.datetime(2020, 1, 16, 0, 0)),
+            ("days", 15, dt.datetime(2020, 1, 30, 0, 0)),
+            ("days", 16, dt.datetime(2020, 1, 31, 0, 0)),
+            ("days", 365, dt.datetime(2021, 1, 14, 0, 0)),
+            ("hours", 2, dt.datetime(2020, 1, 15, 2, 0)),
+            ("minutes", 30, dt.datetime(2020, 1, 15, 0, 30)),
+            ("seconds", 45, dt.datetime(2020, 1, 15, 0, 0, 45)),
+            ("microseconds", 500, dt.datetime(2020, 1, 15, 0, 0, 0, 500)),
+            ("milliseconds", 1000, dt.datetime(2020, 1, 15, 0, 0, 1)),
+            # sub
+            ("weeks", -3, dt.datetime(2019, 12, 25, 0, 0)),
+            ("days", -1, dt.datetime(2020, 1, 14, 0, 0)),
+            ("days", -14, dt.datetime(2020, 1, 1, 0, 0)),
+            ("days", -15, dt.datetime(2019, 12, 31, 0, 0)),
+            ("days", -365, dt.datetime(2019, 1, 15, 0, 0)),
+            ("hours", -2, dt.datetime(2020, 1, 14, 22, 0)),
+            ("minutes", -30, dt.datetime(2020, 1, 14, 23, 30)),
+            ("seconds", -45, dt.datetime(2020, 1, 14, 23, 59, 15)),
+            ("microseconds", -500, dt.datetime(2020, 1, 14, 23, 59, 59, 999500)),
+            ("milliseconds", -1000, dt.datetime(2020, 1, 14, 23, 59, 59, 0)),
+        ],
+    )
+    def test_offset(self, unit: str, value: int, expected: dt.datetime):
+        ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
+        result = tt.stdlib.offset(ref_dt, value, unit)
+        assert result == expected
+
+    @pytest.mark.parametrize("value", ["1", 1.0, None, [], {}])
+    def test_invalid_value_type(self, value: Any):
+        with pytest.raises(TypeError, match="unsupported type .*; expected int"):
+            tt.stdlib.offset("2020-01-15", value, "days")
+
+    @pytest.mark.parametrize("unit", ["year", "month", "century", "", "Day"])
+    def test_invalid_unit(self, unit: str):
+        with pytest.raises(ValueError, match="invalid choice .*; expected a value .*"):
+            tt.stdlib.offset("2020-01-15", 1, unit)
