@@ -1,7 +1,9 @@
-__all__ = ("Duration", "datesub", "parse", "offset")
+__all__ = ("Duration", "Stopwatch", "datesub", "parse", "offset")
 
 import datetime as dt
+import logging
 from collections.abc import Callable, Sequence
+from contextlib import ContextDecorator
 from dataclasses import dataclass, field
 
 import duckdb
@@ -9,6 +11,8 @@ from dateutil import parser
 from dateutil.relativedelta import relativedelta
 
 import timeteller as tt
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -324,6 +328,101 @@ class Duration:
 
     def __str__(self) -> str:
         return self.as_default()
+
+
+class Stopwatch(ContextDecorator):
+    """Measure elapsed wall-clock time.
+
+    Examples
+    --------
+    >>> import datetime as dt
+    >>> import logging
+    >>> import time
+    >>> import time_machine
+    >>> import timeteller as tt
+    >>> logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
+
+    >>> traveller = time_machine.travel(dt.datetime(2025, 1, 1))
+    >>> traveller.start()  # doctest: +SKIP
+    >>> with tt.ext.Stopwatch("context manager example") as sw:  # doctest: +SKIP
+    ...     time.sleep(0.1)
+    ...
+    INFO: started 2025-01-01T01:00:00
+    INFO: stopped 2025-01-01T01:00:00.105225
+    INFO: context manager example took 0.105225s
+    >>> traveller.stop()  # doctest: +SKIP
+    >>> sw  # doctest: +SKIP
+    Stopwatch(2025-01-01T01:00:00, 2025-01-01T01:00:00.105225) took 0.105225s
+
+    >>> traveller = time_machine.travel(dt.datetime(2025, 1, 1))
+    >>> traveller.start()  # doctest: +SKIP
+    >>> @tt.ext.Stopwatch("decorator example")
+    ... def func():
+    ...     time.sleep(0.1)
+    ...
+    >>> func()  # doctest: +SKIP
+    INFO: started 2025-01-01T01:00:00
+    INFO: stopped 2025-01-01T01:00:00.105315
+    INFO: decorator example took 0.105315s
+    >>> traveller.stop()  # doctest: +SKIP
+    """
+
+    __slots__ = ("_label", "_start", "_duration")
+
+    def __init__(self, label: str | None = None) -> None:
+        self._label: str | None = label
+        self._start: dt.datetime = None
+        self._duration: Duration = None
+
+    @property
+    def label(self) -> str | None:
+        """Return the stopwatch label."""
+        return self._label
+
+    @property
+    def start_dt(self) -> dt.datetime:
+        """Return the start datetime."""
+        return self.duration.start_dt
+
+    @property
+    def end_dt(self) -> dt.datetime:
+        """Return the end datetime."""
+        return self.duration.end_dt
+
+    @property
+    def duration(self) -> Duration:
+        """Return the Duration instance."""
+        return self._duration
+
+    def __enter__(self) -> "Stopwatch":
+        """Start the stopwatch."""
+        self._start = dt.datetime.now()
+        logger.info("started %s", tt.stdlib.isoformat(self._start))
+        return self
+
+    def __exit__(self, exc_type, exc, exc_tb) -> bool:
+        """Stop the stopwatch."""
+        end_dt = dt.datetime.now()
+        logger.info("stopped %s", tt.stdlib.isoformat(end_dt))
+        self._duration = Duration(self._start, end_dt)
+        if self.label:
+            logger.info("%s took %s", self.label, self.duration.as_default())
+        else:
+            logger.info("took %s", self.duration.as_default())
+        return False
+
+    def __repr__(self) -> str:
+        start = tt.stdlib.isoformat(self.duration.start_dt)
+        end = tt.stdlib.isoformat(self.duration.end_dt)
+        dur = self.duration.as_default()
+        return f"{self.__class__.__name__}({start}, {end}) took {dur}"
+
+    def __str__(self) -> str:
+        dur = self.duration.as_default()
+        if self.label:
+            return f"{self.label} took {dur}"
+        else:
+            return f"took {dur}"
 
 
 def datesub(

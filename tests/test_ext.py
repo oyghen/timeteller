@@ -1,4 +1,6 @@
 import datetime as dt
+import logging
+import time
 from collections.abc import Callable
 from dataclasses import FrozenInstanceError
 
@@ -475,6 +477,63 @@ class TestDuration:
         assert result.is_zero is False
         assert result.as_iso() == iso
         assert result.as_custom(formatter=show_all) == expected
+
+
+class TestStopwatch:
+    def test_immutability(self):
+        with tt.ext.Stopwatch("immutability test") as sw:
+            time.sleep(0.01)
+
+        assert isinstance(sw.start_dt, dt.datetime)
+        assert isinstance(sw.end_dt, dt.datetime)
+        assert isinstance(sw.duration, tt.ext.Duration)
+        assert not sw.duration.is_zero
+        assert sw.start_dt <= sw.end_dt
+        assert sw.label == "immutability test"
+
+        with pytest.raises(AttributeError):
+            sw.label = "new_label"
+
+        with pytest.raises(AttributeError):
+            sw.start_dt = dt.datetime.now()
+
+        with pytest.raises(AttributeError):
+            sw.end_dt = dt.datetime.now()
+
+        with pytest.raises(AttributeError):
+            sw.duration = dt.timedelta(days=42)
+
+    def test_context_manager(self):
+        with tt.ext.Stopwatch() as sw:
+            time.sleep(0.01)
+
+        assert isinstance(sw.start_dt, dt.datetime)
+        assert isinstance(sw.end_dt, dt.datetime)
+        assert isinstance(sw.duration, tt.ext.Duration)
+        assert not sw.duration.is_zero
+        assert sw.start_dt <= sw.end_dt
+        assert repr(sw).startswith("Stopwatch")
+        assert "took" in repr(sw)
+        assert repr(sw).endswith("s")
+        assert str(sw).startswith("took")
+        assert str(sw).endswith("s")
+
+    def test_decorator(self, caplog):
+        caplog.set_level("INFO")
+
+        @tt.ext.Stopwatch()
+        def func():
+            time.sleep(0.01)
+
+        func()
+
+        assert all(line[1] == logging.INFO for line in caplog.record_tuples)
+        log_messages = [line[-1] for line in caplog.record_tuples]
+        assert len(log_messages) == 3
+        assert log_messages[0].startswith("started")
+        assert log_messages[1].startswith("stopped")
+        assert log_messages[2].startswith("took")
+        assert log_messages[2].endswith("s")
 
 
 class TestDateSub:
