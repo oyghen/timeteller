@@ -519,21 +519,26 @@ class TestStopwatch:
         assert str(sw).endswith("s")
 
     def test_decorator(self, caplog):
-        caplog.set_level("INFO")
+        caplog.set_level(logging.INFO)
 
         @tt.ext.Stopwatch()
-        def func():
-            time.sleep(0.01)
+        def func() -> str:
+            return "success"
 
-        func()
-
-        assert all(line[1] == logging.INFO for line in caplog.record_tuples)
-        log_messages = [line[-1] for line in caplog.record_tuples]
-        assert len(log_messages) == 3
-        assert log_messages[0].startswith("started")
-        assert log_messages[1].startswith("stopped")
-        assert log_messages[2].startswith("took")
-        assert log_messages[2].endswith("s")
+        result = func()
+        assert result == "success"
+        assert len(caplog.records) == 3
+        for i in range(3):
+            rec = caplog.records[i]
+            msg = rec.getMessage()
+            assert rec.levelno == logging.INFO
+            if i == 0:
+                msg.startswith("started")
+            if i == 1:
+                msg.startswith("stopped")
+            if i == 2:
+                msg.startswith("took")
+                msg.endswith("s")
 
 
 class TestDateSub:
