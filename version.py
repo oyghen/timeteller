@@ -112,7 +112,7 @@ def update_dependency_pin(version: str) -> None:
 
 def replace_exact_pin(text: str, package: str, version: str) -> str:
     """Replace an exact dependency pin with a new version."""
-    pattern = rf"({re.escape(package)}==)([^\s,;\"']+)"
+    pattern = rf"({re.escape(package)}\[plus\]==)([^\s,;\"']+)"
     updated, count = re.subn(pattern, rf"\g<1>{version}", text, count=1)
 
     if count != 1:
