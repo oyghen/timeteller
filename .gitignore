@@ -17,5 +17,4 @@ wheels/
 .ruff_cache
 
 # User files
-.user/
 user/

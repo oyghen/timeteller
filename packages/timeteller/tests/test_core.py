@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 import time_machine
-
 import timeteller as tt
 
 
@@ -55,8 +54,8 @@ class TestDateTimeParsing:
             ("T12:45:00.00001", dt.datetime(1900, 1, 1, 12, 45, 0, 10)),
         ],
     )
-    def test_parse(self, value: tt.stdlib.DateTimeLike, expected: dt.datetime):
-        result = tt.stdlib.parse(value)
+    def test_parse(self, value: tt.core.DateTimeLike, expected: dt.datetime):
+        result = tt.core.parse(value)
         assert result.tzinfo is None
         assert result == expected
 
@@ -91,8 +90,8 @@ class TestDateTimeParsing:
             ),
         ],
     )
-    def test_tzinfo(self, value: tt.stdlib.DateTimeLike, expected: dt.datetime):
-        result = tt.stdlib.parse(value)
+    def test_tzinfo(self, value: tt.core.DateTimeLike, expected: dt.datetime):
+        result = tt.core.parse(value)
         expected_tzname = (
             "UTC"
             if any(value.endswith(tz_suffix) for tz_suffix in ("Z", "+00:00", "-00:00"))
@@ -111,18 +110,18 @@ class TestDateTimeParsing:
     )
     def test_tzinfo__cet(
         self,
-        value_cet: tt.stdlib.DateTimeLike,
+        value_cet: tt.core.DateTimeLike,
         value_dt: dt.datetime,
     ):
         try:
-            result = tt.stdlib.parse(value_cet)
+            result = tt.core.parse(value_cet)
             expected = value_dt.replace(tzinfo=dt.timezone(dt.timedelta(seconds=3600)))
             assert result.tzinfo is not None
             assert result.tzname() == "UTC+01:00"
             assert result == expected
         except AssertionError:
             value_cest = value_cet.replace("+01:00", "+02:00")
-            result = tt.stdlib.parse(value_cest)
+            result = tt.core.parse(value_cest)
             expected = value_dt.replace(tzinfo=dt.timezone(dt.timedelta(seconds=7200)))
             assert result.tzinfo is not None
             assert result.tzname() == "UTC+02:00"
@@ -145,24 +144,24 @@ class TestDateTimeParsing:
     )
     def test_formats(
         self,
-        value: tt.stdlib.DateTimeLike,
+        value: tt.core.DateTimeLike,
         formats: str,
         expected: dt.datetime,
     ):
-        assert tt.stdlib.parse(value, formats) == expected
+        assert tt.core.parse(value, formats) == expected
 
     @pytest.mark.parametrize("value", ["foo", "-"])
-    def test_value_error(self, value: tt.stdlib.DateTimeLike):
+    def test_value_error(self, value: tt.core.DateTimeLike):
         with pytest.raises(ValueError):
-            tt.stdlib.parse(value)
+            tt.core.parse(value)
 
     @pytest.mark.parametrize("value", [None, 0, 1.0])
-    def test_type_error(self, value: tt.stdlib.DateTimeLike):
+    def test_type_error(self, value: tt.core.DateTimeLike):
         with pytest.raises(TypeError):
-            tt.stdlib.parse(value)
+            tt.core.parse(value)
 
     def test_strptime_formats(self):
-        items = tt.stdlib.STRPTIME_FORMATS
+        items = tt.core.STRPTIME_FORMATS
         assert isinstance(items, tuple)
         assert all(isinstance(item, str) for item in items)
         assert len(items) == 34
@@ -174,39 +173,39 @@ class TestNowAndTimestamp:
 
     @pytest.mark.skipif(not HAS_ZONE_NAMES, reason="no timezone names available")
     def test_now_with_zone_name(self):
-        dt_obj = tt.stdlib.now("UTC")
+        dt_obj = tt.core.now("UTC")
         assert isinstance(dt_obj, dt.datetime)
         assert dt_obj.tzinfo is not None
         assert dt_obj.utcoffset() == dt.timedelta(0)
 
     @pytest.mark.parametrize("timezone", [dt.UTC, dt.timezone.utc])  # noqa
     def test_now_with_tzinfo(self, timezone: dt.tzinfo):
-        dt_obj = tt.stdlib.now(timezone)
+        dt_obj = tt.core.now(timezone)
         assert isinstance(dt_obj, dt.datetime)
         assert dt_obj.tzinfo is not None
         assert dt_obj.utcoffset() == dt.timedelta(0)
 
     def test_now_none_returns_aware_datetime(self):
-        dt_obj = tt.stdlib.now()
+        dt_obj = tt.core.now()
         assert isinstance(dt_obj, dt.datetime)
         assert dt_obj.tzinfo is not None
 
     def test_timestamp_default_includes_offset_or_z(self):
-        ts = tt.stdlib.timestamp()
+        ts = tt.core.timestamp()
         assert isinstance(ts, str)
         assert re.search(r"([+-]\d{2}:\d{2}|Z)$", ts)
 
     @pytest.mark.skipif(not HAS_ZONE_NAMES, reason="no timezone names available")
     def test_timestamp_with_format_matches_now(self):
         fmt = "%Y-%m-%d %H:%M"
-        ts = tt.stdlib.timestamp("UTC", fmt=fmt)
-        now_dt = tt.stdlib.now("UTC")
+        ts = tt.core.timestamp("UTC", fmt=fmt)
+        now_dt = tt.core.now("UTC")
         assert ts == now_dt.strftime(fmt)
 
     def test_now_invalid_zone_raises_expected_error(self):
         expected_error = ValueError if self.HAS_ZONE_NAMES else LookupError
         with pytest.raises(expected_error):
-            tt.stdlib.now("not/a/real/timezone")
+            tt.core.now("not/a/real/timezone")
 
     @pytest.fixture(scope="class")
     def seed(self) -> dt.datetime:
@@ -215,7 +214,7 @@ class TestNowAndTimestamp:
 
     def test_timestamp_default_call(self, seed: dt.datetime):
         with time_machine.travel(seed):
-            result = tt.stdlib.timestamp(dt.UTC)
+            result = tt.core.timestamp(dt.UTC)
             assert result == "2024-01-01T00:00:00+00:00"
 
     @pytest.mark.parametrize(
@@ -233,7 +232,7 @@ class TestNowAndTimestamp:
     )
     def test_timestamp_with_utc(self, fmt: str, expected: str, seed: dt.datetime):
         with time_machine.travel(seed):
-            result = tt.stdlib.timestamp(dt.UTC, fmt)
+            result = tt.core.timestamp(dt.UTC, fmt)
             assert result == expected
 
     @pytest.mark.skipif(not HAS_ZONE_NAMES, reason="no timezone names available")
@@ -252,7 +251,7 @@ class TestNowAndTimestamp:
     )
     def test_timestamp_with_cet(self, fmt: str, expected: str, seed: dt.datetime):
         with time_machine.travel(seed):
-            result = tt.stdlib.timestamp("CET", fmt)
+            result = tt.core.timestamp("CET", fmt)
             assert result == expected
 
     @pytest.mark.skipif(not HAS_ZONE_NAMES, reason="no timezone names available")
@@ -271,7 +270,7 @@ class TestNowAndTimestamp:
     )
     def test_timestamp_with_hawaii(self, fmt: str, expected: str, seed: dt.datetime):
         with time_machine.travel(seed):
-            result = tt.stdlib.timestamp("US/Hawaii", fmt)
+            result = tt.core.timestamp("US/Hawaii", fmt)
             assert result == expected
 
     @pytest.mark.skipif(not HAS_ZONE_NAMES, reason="no timezone names available")
@@ -290,7 +289,7 @@ class TestNowAndTimestamp:
     )
     def test_timestamp_with_tokyo(self, fmt: str, expected: str, seed: dt.datetime):
         with time_machine.travel(seed):
-            result = tt.stdlib.timestamp("Asia/Tokyo", fmt)
+            result = tt.core.timestamp("Asia/Tokyo", fmt)
             assert result == expected
 
     @pytest.mark.skipif(not HAS_ZONE_NAMES, reason="no timezone names available")
@@ -350,9 +349,9 @@ class TestNowAndTimestamp:
         seed: dt.datetime,
     ):
         with time_machine.travel(seed):
-            result = tt.stdlib.timestamp(timezone, fmt)
+            result = tt.core.timestamp(timezone, fmt)
             assert result == expected_str
-            assert tt.stdlib.parse(result) == expected_dt
+            assert tt.core.parse(result) == expected_dt
 
 
 class TestIsoformat:
@@ -364,7 +363,7 @@ class TestIsoformat:
         ],
     )
     def test_date_input(self, value: dt.date, expected: str):
-        assert tt.stdlib.isoformat(value) == expected
+        assert tt.core.isoformat(value) == expected
 
     @pytest.mark.parametrize(
         "value, expected",
@@ -374,7 +373,7 @@ class TestIsoformat:
         ],
     )
     def test_datetime_midnight_naive(self, value: dt.datetime, expected: str):
-        assert tt.stdlib.isoformat(value) == expected
+        assert tt.core.isoformat(value) == expected
 
     @pytest.mark.parametrize(
         "value, expected",
@@ -385,7 +384,7 @@ class TestIsoformat:
         ],
     )
     def test_datetime_non_midnight_naive(self, value: dt.datetime, expected: str):
-        assert tt.stdlib.isoformat(value) == expected
+        assert tt.core.isoformat(value) == expected
 
     @pytest.mark.parametrize(
         "value, expected",
@@ -400,7 +399,7 @@ class TestIsoformat:
         ],
     )
     def test_datetime_midnight_aware(self, value: dt.datetime, expected: str):
-        assert tt.stdlib.isoformat(value) == expected
+        assert tt.core.isoformat(value) == expected
 
     @pytest.mark.parametrize(
         "value, expected",
@@ -418,7 +417,7 @@ class TestIsoformat:
         ],
     )
     def test_datetime_non_midnight_aware(self, value: dt.datetime, expected: str):
-        assert tt.stdlib.isoformat(value) == expected
+        assert tt.core.isoformat(value) == expected
 
 
 class TestLastDay:
@@ -451,7 +450,7 @@ class TestLastDay:
         ],
     )
     def test_last_day_string(self, value: str, expected: dt.datetime):
-        assert tt.stdlib.last_day(value) == expected
+        assert tt.core.last_day(value) == expected
 
     @pytest.mark.parametrize(
         "value, expected",
@@ -463,7 +462,7 @@ class TestLastDay:
         ],
     )
     def test_last_day_datetime(self, value: dt.datetime, expected: dt.datetime):
-        assert tt.stdlib.last_day(value) == expected
+        assert tt.core.last_day(value) == expected
 
     @pytest.mark.parametrize(
         "value, expected",
@@ -475,7 +474,7 @@ class TestLastDay:
         ],
     )
     def test_last_day_timezone_aware(self, value: dt.datetime, expected: dt.datetime):
-        assert tt.stdlib.last_day(value) == expected
+        assert tt.core.last_day(value) == expected
 
 
 class TestOffset:
@@ -493,7 +492,7 @@ class TestOffset:
     )
     def test_zero_offset(self, unit: str):
         ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
-        result = tt.stdlib.offset(ref_dt, 0, unit)
+        result = tt.core.offset(ref_dt, 0, unit)
         assert result == dt.datetime(2020, 1, 15, 0, 0, 0)
 
     @pytest.mark.parametrize(
@@ -525,7 +524,7 @@ class TestOffset:
     )
     def test_offset(self, unit: str, value: int, expected: dt.datetime):
         ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
-        result = tt.stdlib.offset(ref_dt, value, unit)
+        result = tt.core.offset(ref_dt, value, unit)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -563,24 +562,24 @@ class TestOffset:
         reference: dt.date,
         expected: dt.datetime,
     ):
-        result = tt.stdlib.offset(reference, value, "days")
+        result = tt.core.offset(reference, value, "days")
         assert result == expected
 
     @pytest.mark.parametrize("value", ["1", 1.0, None, [], {}])
     def test_invalid_value_type(self, value: Any):
         with pytest.raises(TypeError, match="unsupported type .*; expected int"):
-            tt.stdlib.offset("2020-01-15", value, "days")
+            tt.core.offset("2020-01-15", value, "days")
 
     @pytest.mark.parametrize("unit", ["year", "month", "century", "", "Day"])
     def test_invalid_unit(self, unit: str):
         with pytest.raises(ValueError, match="invalid choice .*; expected a value .*"):
-            tt.stdlib.offset("2020-01-15", 1, unit)
+            tt.core.offset("2020-01-15", 1, unit)
 
 
 class TestCount:
     def test_count_forward(self):
         reference = dt.date(2022, 1, 1)
-        seq = tt.stdlib.count(reference, 1, "days")
+        seq = tt.core.count(reference, 1, "days")
         result = list(itertools.islice(seq, 3))
         expected = [
             dt.datetime(2022, 1, 1),
@@ -591,7 +590,7 @@ class TestCount:
 
     def test_count_backward(self):
         reference = dt.date(2022, 1, 1)
-        seq = tt.stdlib.count(reference, -1, "days")
+        seq = tt.core.count(reference, -1, "days")
         result = list(itertools.islice(seq, 3))
         expected = [
             dt.datetime(2022, 1, 1),
@@ -628,13 +627,13 @@ class TestCount:
     )
     def test_basic_progression(
         self,
-        reference: tt.stdlib.DateTimeLike,
+        reference: tt.core.DateTimeLike,
         value: int,
         unit: str,
         expected_first: dt.datetime,
         expected_second: dt.datetime,
     ) -> None:
-        iterator = tt.stdlib.count(reference, value, unit)
+        iterator = tt.core.count(reference, value, unit)
 
         first = next(iterator)
         second = next(iterator)
@@ -645,7 +644,7 @@ class TestCount:
     @pytest.mark.parametrize("value", [0, -1, -5])
     def test_zero_and_negative_steps(self, value: int) -> None:
         reference = dt.datetime(2024, 1, 1)
-        iterator = tt.stdlib.count(reference, value, "days")
+        iterator = tt.core.count(reference, value, "days")
 
         first = next(iterator)
         second = next(iterator)
@@ -656,15 +655,15 @@ class TestCount:
     @pytest.mark.parametrize("unit", ["day", "month", "years", "foo", ""])
     def test_invalid_unit_raises_value_error(self, unit: str) -> None:
         with pytest.raises(ValueError):
-            next(tt.stdlib.count(dt.datetime(2024, 1, 1), 1, unit))
+            next(tt.core.count(dt.datetime(2024, 1, 1), 1, unit))
 
     @pytest.mark.parametrize("value", [1.5, "1", None])
     def test_invalid_value_type_raises_type_error(self, value: Any) -> None:
         with pytest.raises(TypeError):
-            next(tt.stdlib.count(dt.datetime(2024, 1, 1), value, "days"))
+            next(tt.core.count(dt.datetime(2024, 1, 1), value, "days"))
 
     def test_iterator_is_infinite(self) -> None:
-        iterator = tt.stdlib.count(dt.datetime(2024, 1, 1), 1, "days")
+        iterator = tt.core.count(dt.datetime(2024, 1, 1), 1, "days")
         assert isinstance(iterator, Iterator)
         for _ in range(100):
             next(iterator)
@@ -702,17 +701,17 @@ class TestRange:
     )
     def test_basic_range(
         self,
-        start: tt.stdlib.DateTimeLike,
-        end: tt.stdlib.DateTimeLike,
+        start: tt.core.DateTimeLike,
+        end: tt.core.DateTimeLike,
         step: int,
         unit: str,
         expected: list[dt.datetime],
     ):
-        result = list(tt.stdlib.range(start, end, step, unit))
+        result = list(tt.core.range(start, end, step, unit))
         assert result == expected
 
     def test_start_after_end_is_normalized(self):
-        result = list(tt.stdlib.range("2023-01-03", "2023-01-01", 1, "days"))
+        result = list(tt.core.range("2023-01-03", "2023-01-01", 1, "days"))
         expected = [
             dt.datetime(2023, 1, 1),
             dt.datetime(2023, 1, 2),
@@ -721,11 +720,11 @@ class TestRange:
         assert result == expected
 
     def test_single_value_when_start_equals_end(self):
-        result = list(tt.stdlib.range("2023-01-01", "2023-01-01", 1, "days"))
+        result = list(tt.core.range("2023-01-01", "2023-01-01", 1, "days"))
         assert result == [dt.datetime(2023, 1, 1)]
 
     def test_result_is_iterator_of_datetimes(self):
-        result = tt.stdlib.range("2023-01-01", "2023-01-02", 1, "days")
+        result = tt.core.range("2023-01-01", "2023-01-02", 1, "days")
         assert isinstance(result, Iterator)
         for value in result:
             assert isinstance(value, dt.datetime)
@@ -733,6 +732,6 @@ class TestRange:
     def test_end_is_inclusive(self):
         """End value is included when it falls exactly on a step."""
         result = list(
-            tt.stdlib.range("2023-01-01T00:00:00", "2023-01-01T02:00:00", 1, "hours")
+            tt.core.range("2023-01-01T00:00:00", "2023-01-01T02:00:00", 1, "hours")
         )
         assert result[-1] == dt.datetime(2023, 1, 1, 2, 0)

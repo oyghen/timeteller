@@ -6,7 +6,6 @@ from dataclasses import FrozenInstanceError
 
 import duckdb
 import pytest
-
 import timeteller as tt
 
 
@@ -37,11 +36,11 @@ class TestDuration:
         ],
     )
     def test_repr(self, start: str, end: str, expected: str):
-        result = tt.ext.Duration(start, end)
+        result = tt.plus.Duration(start, end)
         assert repr(result) == expected
 
     def test_immutability(self):
-        inst = tt.ext.Duration("2024-07-01T13:00:00", "2024-07-01T13:00:01")
+        inst = tt.plus.Duration("2024-07-01T13:00:00", "2024-07-01T13:00:01")
 
         # trying to modify an attribute should raise an error
         for attr in ("start_dt", "end_dt", "delta"):
@@ -71,7 +70,7 @@ class TestDuration:
     def test_constructor_orders_datetimes_and_total_seconds_positive(self):
         start = dt.datetime(2025, 1, 2, 0, 0, 0)
         end = dt.datetime(2025, 1, 1, 0, 0, 0)
-        result = tt.ext.Duration(start, end)
+        result = tt.plus.Duration(start, end)
 
         assert repr(result) == "Duration(2025-01-01, 2025-01-02)"
         assert result.start_dt == min(start, end)
@@ -90,8 +89,8 @@ class TestDuration:
     def test_formatted_seconds(self, seconds: int, microseconds: int, expected: str):
         start = dt.datetime(2025, 1, 1, 13, 0, 0)
         end = start + dt.timedelta(seconds=seconds, microseconds=microseconds)
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.formatted_seconds == expected
 
     @pytest.mark.parametrize(
@@ -115,13 +114,13 @@ class TestDuration:
         ],
     )
     def test_formatted_seconds_extended(self, start: str, end: str, expected: str):
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.formatted_seconds == expected
 
     def test_is_zero(self):
         t = dt.datetime(2025, 6, 1, 12, 0, 0)
-        result = tt.ext.Duration(t, t)
+        result = tt.plus.Duration(t, t)
         assert result.is_zero is True
         assert result.as_iso() == "PT0S"
         assert result.as_default() == "0s"
@@ -145,8 +144,8 @@ class TestDuration:
         ],
     )
     def test_is_zero_extended(self, start: str, end: str, iso: str, expected: str):
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.is_zero is True
         assert result.as_iso() == iso
         assert result.as_default() == expected
@@ -169,7 +168,7 @@ class TestDuration:
         ],
     )
     def test_as_default(self, start: dt.datetime, end: dt.datetime, expected: str):
-        result = tt.ext.Duration(start, end)
+        result = tt.plus.Duration(start, end)
         assert result.as_default() == expected
 
     @pytest.mark.parametrize(
@@ -288,8 +287,8 @@ class TestDuration:
         ],
     )
     def test_as_default_extended(self, start: str, end: str, iso: str, expected: str):
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
         assert result.as_default() == expected
@@ -297,7 +296,7 @@ class TestDuration:
     def test_as_compact_days(self):
         start = dt.datetime(2024, 7, 1, 13, 0, 0)
         end = dt.datetime(2025, 7, 1, 14, 1, 1)
-        result = tt.ext.Duration(start, end)
+        result = tt.plus.Duration(start, end)
         assert result.as_compact_days() == "365d 1h 1m 1s"
 
     @pytest.mark.parametrize(
@@ -333,8 +332,8 @@ class TestDuration:
         ],
     )
     def test_compact_days_extended(self, start: str, end: str, iso: str, expected: str):
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
         assert result.as_compact_days() == expected
@@ -342,7 +341,7 @@ class TestDuration:
     def test_as_compact_weeks(self):
         start = dt.datetime(2024, 7, 1, 13, 0, 0)
         end = dt.datetime(2025, 7, 9, 14, 1, 1)
-        result = tt.ext.Duration(start, end)
+        result = tt.plus.Duration(start, end)
         assert result.as_compact_weeks() == "1y 1w 1d 1h 1m 1s"
 
     @pytest.mark.parametrize(
@@ -383,8 +382,8 @@ class TestDuration:
         ],
     )
     def test_compact_weeks_ext(self, start: str, end: str, iso: str, expected: str):
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
         assert result.as_compact_weeks() == expected
@@ -405,13 +404,13 @@ class TestDuration:
         ],
     )
     def test_as_iso(self, start: dt.datetime, end: dt.datetime, expected: str):
-        result = tt.ext.Duration(start, end)
+        result = tt.plus.Duration(start, end)
         assert result.as_iso() == expected
 
     def test_as_total_seconds(self):
         start = dt.datetime(2024, 7, 1, 13, 0, 0)
         end = dt.datetime(2025, 7, 1, 14, 1, 1)
-        result = tt.ext.Duration(start, end)
+        result = tt.plus.Duration(start, end)
         formatted = result.as_total_seconds()
         assert formatted.endswith("s")
         # numeric part matches int(round(total_seconds))
@@ -426,8 +425,8 @@ class TestDuration:
         ],
     )
     def test_total_secs_extended(self, start: str, end: str, iso: str, expected: str):
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
         assert result.as_total_seconds() == expected
@@ -435,7 +434,7 @@ class TestDuration:
     def test_as_custom(self):
         start = dt.datetime(2024, 7, 1, 13, 0, 0)
         end = dt.datetime(2025, 7, 1, 14, 1, 1)
-        dur = tt.ext.Duration(start, end)
+        dur = tt.plus.Duration(start, end)
         result = dur.as_custom(lambda x: f"{x.years}y {x.months}mo {x.days}d")
         assert result == "1y 0mo 0d"
 
@@ -457,7 +456,7 @@ class TestDuration:
         ],
     )
     def test_custom(self, start: str, end: str, iso: str, expected: str):
-        def show_all(d: tt.ext.Duration) -> str:
+        def show_all(d: tt.plus.Duration) -> str:
             def multiplier(value: int | float) -> str:
                 return "" if value == 1 else "s"
 
@@ -472,8 +471,8 @@ class TestDuration:
                 ]
             )
 
-        result = tt.ext.Duration(start, end)
-        assert isinstance(result, tt.ext.Duration)
+        result = tt.plus.Duration(start, end)
+        assert isinstance(result, tt.plus.Duration)
         assert result.is_zero is False
         assert result.as_iso() == iso
         assert result.as_custom(formatter=show_all) == expected
@@ -481,12 +480,12 @@ class TestDuration:
 
 class TestStopwatch:
     def test_immutability(self):
-        with tt.ext.Stopwatch("immutability test") as sw:
+        with tt.plus.Stopwatch("immutability test") as sw:
             time.sleep(0.01)
 
         assert isinstance(sw.start_dt, dt.datetime)
         assert isinstance(sw.end_dt, dt.datetime)
-        assert isinstance(sw.duration, tt.ext.Duration)
+        assert isinstance(sw.duration, tt.plus.Duration)
         assert not sw.duration.is_zero
         assert sw.start_dt <= sw.end_dt
         assert sw.label == "immutability test"
@@ -504,12 +503,12 @@ class TestStopwatch:
             sw.duration = dt.timedelta(days=42)
 
     def test_context_manager(self):
-        with tt.ext.Stopwatch() as sw:
+        with tt.plus.Stopwatch() as sw:
             time.sleep(0.01)
 
         assert isinstance(sw.start_dt, dt.datetime)
         assert isinstance(sw.end_dt, dt.datetime)
-        assert isinstance(sw.duration, tt.ext.Duration)
+        assert isinstance(sw.duration, tt.plus.Duration)
         assert not sw.duration.is_zero
         assert sw.start_dt <= sw.end_dt
         assert repr(sw).startswith("Stopwatch")
@@ -521,7 +520,7 @@ class TestStopwatch:
     def test_decorator(self, caplog):
         caplog.set_level(logging.INFO)
 
-        @tt.ext.Stopwatch()
+        @tt.plus.Stopwatch()
         def func() -> str:
             return "success"
 
@@ -556,7 +555,7 @@ class TestDateSub:
             ("1992-09-30 23:59:59", "1992-10-01 01:58:00", "sec", 7081),
         ]
         for start, end, part, expected in date_time_values:
-            result = tt.ext.datesub(part, start, end)
+            result = tt.plus.datesub(part, start, end)
             assert result == expected
 
         time_values = [
@@ -564,7 +563,7 @@ class TestDateSub:
             (dt.time(1, 2, 3), dt.time(6, 1, 3), "hour", 4),
         ]
         for start, end, part, expected in time_values:
-            result = tt.ext.datesub(part, start, end)
+            result = tt.plus.datesub(part, start, end)
             assert result == expected
 
     @pytest.mark.parametrize(
@@ -616,7 +615,7 @@ class TestDateSub:
             start = cast_func(get_ref_date(start))
             end = cast_func(get_ref_date(end))
             for part in ("year", "years", "y", "yr", "yrs"):
-                result = tt.ext.datesub(part, start, end)
+                result = tt.plus.datesub(part, start, end)
                 assert result == expected
 
     @pytest.mark.parametrize(
@@ -677,7 +676,7 @@ class TestDateSub:
             start = cast_func(get_ref_date(start))
             end = cast_func(get_ref_date(end))
             for part in ("month", "months", "mon", "mons"):
-                result = tt.ext.datesub(part, start, end)
+                result = tt.plus.datesub(part, start, end)
                 assert result == expected
 
     @pytest.mark.parametrize(
@@ -738,15 +737,15 @@ class TestDateSub:
             start = cast_func(get_ref_date(start))
             end = cast_func(get_ref_date(end))
             for part in ("day", "days", "d", "dayofmonth"):
-                result = tt.ext.datesub(part, start, end)
+                result = tt.plus.datesub(part, start, end)
                 assert result == expected
 
     @staticmethod
     def cast_funcs() -> tuple[Callable[[str], str | dt.date | dt.datetime]]:
         return (
-            tt.ext.parse,
+            tt.plus.parse,
             lambda x: x,
-            lambda x: dt.datetime.combine(tt.ext.parse(x), dt.datetime.min.time()),
+            lambda x: dt.datetime.combine(tt.plus.parse(x), dt.datetime.min.time()),
         )
 
     @pytest.fixture(scope="class")
@@ -770,9 +769,9 @@ class TestExtendedDateTimeParsing:
             "3 March 2020 17:30:45",
         ],
     )
-    def test_stdlib_parse_rejects_natural_language(self, value: str):
+    def test_core_parse_rejects_natural_language(self, value: str):
         with pytest.raises(ValueError):
-            tt.stdlib.parse(value)
+            tt.core.parse(value)
 
     @pytest.mark.parametrize(
         "value, expected",
@@ -786,7 +785,7 @@ class TestExtendedDateTimeParsing:
         ],
     )
     def test_extended_parse(self, value: str, expected: dt.datetime):
-        assert tt.ext.parse(value) == expected
+        assert tt.plus.parse(value) == expected
 
 
 class TestOffset:
@@ -807,7 +806,7 @@ class TestOffset:
     )
     def test_zero_offset(self, unit: str):
         ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
-        result = tt.ext.offset(ref_dt, 0, unit)
+        result = tt.plus.offset(ref_dt, 0, unit)
         assert result == dt.datetime(2020, 1, 15, 0, 0, 0)
 
     @pytest.mark.parametrize(
@@ -837,7 +836,7 @@ class TestOffset:
     )
     def test_offset(self, unit: str, value: int, expected: dt.datetime):
         ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
-        result = tt.ext.offset(ref_dt, value, unit)
+        result = tt.plus.offset(ref_dt, value, unit)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -855,7 +854,7 @@ class TestOffset:
     def test_timedelta_units_with_datetime(self, unit: str, value: int):
         ref_dt = dt.datetime(2020, 1, 1, 12, 0, 0)
         expected = ref_dt + dt.timedelta(**{unit: value})
-        assert tt.ext.offset(ref_dt, value, unit) == expected
+        assert tt.plus.offset(ref_dt, value, unit) == expected
 
     @pytest.mark.parametrize(
         "reference, expected",
@@ -867,17 +866,19 @@ class TestOffset:
     )
     def test_string_and_date_inputs(
         self,
-        reference: tt.stdlib.DateTimeLike,
+        reference: tt.core.DateTimeLike,
         expected: dt.datetime,
     ):
-        assert tt.ext.offset(reference, 0, "days") == expected
+        assert tt.plus.offset(reference, 0, "days") == expected
 
     def test_unit_case_and_plural_handling(self):
         ref_dt = dt.datetime(2021, 6, 1, 8, 0, 0)
-        assert tt.ext.offset(ref_dt, 1, "Days") == ref_dt + dt.timedelta(days=1)
-        assert tt.ext.offset(ref_dt, 2, "  HOURS  ") == ref_dt + dt.timedelta(hours=2)
-        assert tt.ext.offset(ref_dt, -3, "MiNuTeS") == ref_dt + dt.timedelta(minutes=-3)
+        assert tt.plus.offset(ref_dt, 1, "Days") == ref_dt + dt.timedelta(days=1)
+        assert tt.plus.offset(ref_dt, 2, "  HOURS  ") == ref_dt + dt.timedelta(hours=2)
+        assert tt.plus.offset(ref_dt, -3, "MiNuTeS") == ref_dt + dt.timedelta(
+            minutes=-3
+        )
 
     def test_invalid_unit_raises_value_error(self):
         with pytest.raises(duckdb.ConversionException):
-            tt.ext.offset(dt.datetime.now(), 1, "bad_value")
+            tt.plus.offset(dt.datetime.now(), 1, "bad_value")

@@ -5,17 +5,22 @@
             "label": "pre-commit all",
             "type": "shell",
             "command": "uv run pre-commit run --all-files",
-            "problemMatcher": [
-                "$python"
-            ]
+            "problemMatcher": []
         },
         {
             "label": "pytest",
             "type": "shell",
-            "command": "uv run pytest --verbose --doctest-modules --ignore=user",
-            "problemMatcher": [
-                "$python"
-            ]
+            "command": "uv",
+            "args": [
+                "run",
+                "--no-sync",
+                "pytest",
+                "--verbose",
+                "--doctest-modules",
+                "--ignore=user",
+                "--ignore=version.py"
+            ],
+            "problemMatcher": []
         }
     ]
 }

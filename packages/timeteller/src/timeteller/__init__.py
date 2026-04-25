@@ -1,17 +1,12 @@
-__all__ = ("__version__", "ext", "stdlib")
+__all__ = ("__version__", "core")
 
-import logging
 from importlib import metadata
 from typing import TYPE_CHECKING
 
 __version__ = metadata.version(__name__)
 
-# Prevent "No handlers could be found" warnings when the library is imported.
-# Applications are responsible for configuring handlers/formatters/levels.
-logging.getLogger(__name__).addHandler(logging.NullHandler())
-
 if TYPE_CHECKING:
-    from timeteller import ext, stdlib
+    from timeteller import core
 
 
 def __getattr__(name: str):

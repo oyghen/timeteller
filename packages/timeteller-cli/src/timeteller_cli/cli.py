@@ -1,13 +1,29 @@
 import datetime as dt
 
+import timeteller as tt
 import typer
 from rich.console import Console
 from rich.table import Table
 
-import timeteller as tt
-
 console = Console()
 app = typer.Typer(add_completion=False)
+
+
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    version: bool = typer.Option(False, "--version", help="Show version and exit."),
+) -> None:
+    pkg_name = tt.__name__
+    pkg_version = typer.style(tt.__version__, fg=typer.colors.CYAN)
+
+    if version:
+        typer.echo(f"{pkg_name} {pkg_version}")
+        raise typer.Exit()
+
+    if ctx.invoked_subcommand is None:
+        typer.echo(f"{pkg_name} {pkg_version} ready. See --help for usage.")
+        raise typer.Exit()
 
 
 START_ARG = typer.Argument(
@@ -32,17 +48,6 @@ REFERENCE_ARG = typer.Argument(
 )
 
 
-@app.callback(invoke_without_command=True)
-def version(
-    show: bool = typer.Option(
-        False, "--version", "-V", help="Show app version and exit."
-    ),
-) -> None:
-    if show:
-        typer.echo(f"{tt.__name__} {tt.__version__}")
-        raise typer.Exit()
-
-
 @app.command()
 def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) -> None:
     """Show duration summary between two dates or times.
@@ -50,15 +55,15 @@ def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) 
     Example:
     $ timeteller duration 1991-02-20
     """
-    start_dt = tt.ext.parse(start)
-    start_iso = tt.stdlib.isoformat(start_dt)
+    start_dt = tt.plus.parse(start)
+    start_iso = tt.core.isoformat(start_dt)
     is_date_fmt = len(start_iso) == len("YYYY-MM-DD")
     if end is None:
         end_dt = dt.date.today() if is_date_fmt else dt.datetime.now()
     else:
-        end_dt = tt.ext.parse(end)
+        end_dt = tt.plus.parse(end)
 
-    d = tt.ext.Duration(start_dt, end_dt)
+    d = tt.plus.Duration(start_dt, end_dt)
 
     gray = "#666666"
     table = Table(header_style=gray, style=gray)
@@ -66,15 +71,15 @@ def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) 
     table.add_column("value", justify="right", style="#FFEC71", no_wrap=True)
     table.add_column("comment", justify="right", style=gray, no_wrap=True)
 
-    table.add_row("start", tt.stdlib.isoformat(d.start_dt), d.start_dt.strftime("%A"))
+    table.add_row("start", tt.core.isoformat(d.start_dt), d.start_dt.strftime("%A"))
     if end is None:
         comment = "today" if is_date_fmt else "now"
     else:
         comment = d.end_dt.strftime("%A")
-    table.add_row("end", tt.stdlib.isoformat(d.end_dt), comment)
+    table.add_row("end", tt.core.isoformat(d.end_dt), comment)
     table.add_row("duration", str(d), "elapsed time")
 
-    num_days = tt.ext.datesub("days", d.start_dt, d.end_dt) + 1
+    num_days = tt.plus.datesub("days", d.start_dt, d.end_dt) + 1
     num_days_text = "1 day" if num_days == 1 else f"{num_days:_} days"
     table.add_row("day count", num_days_text, "start/end incl.")
 
@@ -92,15 +97,15 @@ def datesub(
     Example:
     $ timeteller datesub --unit decades 1991-02-20
     """
-    start_dt = tt.ext.parse(start)
-    start_iso = tt.stdlib.isoformat(start_dt)
+    start_dt = tt.plus.parse(start)
+    start_iso = tt.core.isoformat(start_dt)
     is_date_fmt = len(start_iso) == len("YYYY-MM-DD")
     if end is None:
         end_dt = dt.date.today() if is_date_fmt else dt.datetime.now()
     else:
-        end_dt = tt.ext.parse(end)
+        end_dt = tt.plus.parse(end)
 
-    result = tt.ext.datesub(unit, start_dt, end_dt)
+    result = tt.plus.datesub(unit, start_dt, end_dt)
 
     gray = "#666666"
     table = Table(header_style=gray, style=gray)
@@ -108,12 +113,12 @@ def datesub(
     table.add_column("value", justify="right", style="#FFEC71", no_wrap=True)
     table.add_column("comment", justify="right", style=gray, no_wrap=True)
 
-    table.add_row("start", tt.stdlib.isoformat(start_dt), start_dt.strftime("%A"))
+    table.add_row("start", tt.core.isoformat(start_dt), start_dt.strftime("%A"))
     if end is None:
         comment = "today" if is_date_fmt else "now"
     else:
         comment = end_dt.strftime("%A")
-    table.add_row("end", tt.stdlib.isoformat(end_dt), comment)
+    table.add_row("end", tt.core.isoformat(end_dt), comment)
     table.add_row("datesub", f"{result:_}", unit)
 
     console.print(table)
@@ -140,14 +145,14 @@ def offset(
     elif token == "now":
         ref_dt = dt.datetime.now()
     else:
-        ref_dt = tt.ext.parse(reference)
+        ref_dt = tt.plus.parse(reference)
 
     op = operation.lower()
     if op not in {"add", "sub"}:
         raise typer.BadParameter("Operation must be 'add' or 'sub'")
     offset_value = value if op == "add" else -value
 
-    offset_dt = tt.ext.offset(ref_dt, offset_value, unit)
+    offset_dt = tt.plus.offset(ref_dt, offset_value, unit)
 
     gray = "#666666"
     table = Table(header_style=gray, style=gray)
@@ -155,17 +160,12 @@ def offset(
     table.add_column("value", justify="right", style="#FFEC71", no_wrap=True)
     table.add_column("comment", justify="right", style=gray, no_wrap=True)
 
-    table.add_row("reference", tt.stdlib.isoformat(ref_dt), ref_dt.strftime("%A"))
-    table.add_row("offset", tt.stdlib.isoformat(offset_dt), offset_dt.strftime("%A"))
+    table.add_row("reference", tt.core.isoformat(ref_dt), ref_dt.strftime("%A"))
+    table.add_row("offset", tt.core.isoformat(offset_dt), offset_dt.strftime("%A"))
 
-    d = tt.ext.Duration(ref_dt, offset_dt)
-    num_days = tt.ext.datesub("days", d.start_dt, d.end_dt) + 1
+    d = tt.plus.Duration(ref_dt, offset_dt)
+    num_days = tt.plus.datesub("days", d.start_dt, d.end_dt) + 1
     num_days_text = "1 day" if num_days == 1 else f"{num_days:_} days"
     table.add_row("day count", num_days_text, "ref/off incl.")
 
     console.print(table)
-
-
-def main() -> None:
-    """Canonical entry point for CLI execution."""
-    app()

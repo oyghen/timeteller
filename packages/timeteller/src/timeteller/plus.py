@@ -11,6 +11,7 @@ from dateutil import parser
 from dateutil.relativedelta import relativedelta
 
 import timeteller as tt
+from timeteller.core import DateTimeLike
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class Duration:
     Examples
     --------
     >>> import timeteller as tt
-    >>> duration = tt.ext.Duration("2024-07-01 13:00:00", "2024-08-02 14:00:01")
+    >>> duration = tt.plus.Duration("2024-07-01 13:00:00", "2024-08-02 14:00:01")
     >>> duration
     Duration(2024-07-01T13:00:00, 2024-08-02T14:00:01)
     >>> duration.is_zero
@@ -45,7 +46,7 @@ class Duration:
     end_dt: dt.datetime
     delta: relativedelta = field(repr=False)
 
-    def __init__(self, start: tt.stdlib.DateTimeLike, end: tt.stdlib.DateTimeLike):
+    def __init__(self, start: DateTimeLike, end: DateTimeLike):
         start_dt = parse(start)
         end_dt = parse(end)
 
@@ -103,7 +104,7 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("13:00:00", "13:00:00")
+        >>> duration = tt.plus.Duration("13:00:00", "13:00:00")
         >>> duration.is_zero
         True
         """
@@ -125,15 +126,15 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("13:00:00", "13:00:00.123456")
+        >>> duration = tt.plus.Duration("13:00:00", "13:00:00.123456")
         >>> duration.seconds, duration.microseconds, duration.formatted_seconds
         (0, 123456, '0.123456')
 
-        >>> duration = tt.ext.Duration("13:00:00", "13:00:01")
+        >>> duration = tt.plus.Duration("13:00:00", "13:00:01")
         >>> duration.seconds, duration.microseconds, duration.formatted_seconds
         (1, 0, '1')
 
-        >>> duration = tt.ext.Duration("13:00:00", "13:00:01.234")
+        >>> duration = tt.plus.Duration("13:00:00", "13:00:01.234")
         >>> duration.seconds, duration.microseconds, duration.formatted_seconds
         (1, 234000, '1.234')
         """
@@ -150,11 +151,11 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
         >>> duration.as_default()
         '1y 1h 1m 1s'
 
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
         >>> duration.as_default()
         '1y 8d 1h 1m 1s'
         """
@@ -183,11 +184,11 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
         >>> duration.as_compact_days()
         '365d 1h 1m 1s'
 
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
         >>> duration.as_compact_days()
         '373d 1h 1m 1s'
         """
@@ -217,11 +218,11 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
         >>> duration.as_compact_weeks()
         '1y 1h 1m 1s'
 
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
         >>> duration.as_compact_weeks()
         '1y 1w 1d 1h 1m 1s'
         """
@@ -254,11 +255,11 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
         >>> duration.as_iso()
         'P1YT1H1M1S'
 
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-09T14:01:01")
         >>> duration.as_iso()
         'P1Y8DT1H1M1S'
         """
@@ -297,7 +298,7 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
         >>> duration.as_total_seconds()
         '31_539_661s'
         """
@@ -309,7 +310,7 @@ class Duration:
         Examples
         --------
         >>> import timeteller as tt
-        >>> duration = tt.ext.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
+        >>> duration = tt.plus.Duration("2024-07-01T13:00:00", "2025-07-01T14:01:01")
         >>> duration.as_custom(lambda x: f"{x.years}y {x.months}mo {x.days}d")
         '1y 0mo 0d'
         """
@@ -322,8 +323,8 @@ class Duration:
         return f"0{unit}" if num_parts == 0 else ""
 
     def __repr__(self) -> str:
-        start = tt.stdlib.isoformat(self.start_dt)
-        end = tt.stdlib.isoformat(self.end_dt)
+        start = tt.core.isoformat(self.start_dt)
+        end = tt.core.isoformat(self.end_dt)
         return f"{self.__class__.__name__}({start}, {end})"
 
     def __str__(self) -> str:
@@ -344,7 +345,7 @@ class Stopwatch(ContextDecorator):
 
     >>> traveller = time_machine.travel(dt.datetime(2025, 1, 1))
     >>> traveller.start()  # doctest: +SKIP
-    >>> with tt.ext.Stopwatch("context manager example") as sw:  # doctest: +SKIP
+    >>> with tt.plus.Stopwatch("context manager example") as sw:  # doctest: +SKIP
     ...     time.sleep(0.1)
     ...
     INFO: started 2025-01-01T01:00:00
@@ -356,7 +357,7 @@ class Stopwatch(ContextDecorator):
 
     >>> traveller = time_machine.travel(dt.datetime(2025, 1, 1))
     >>> traveller.start()  # doctest: +SKIP
-    >>> @tt.ext.Stopwatch("decorator example")
+    >>> @tt.plus.Stopwatch("decorator example")
     ... def func():
     ...     time.sleep(0.1)
     ...
@@ -397,13 +398,13 @@ class Stopwatch(ContextDecorator):
     def __enter__(self) -> "Stopwatch":
         """Start the stopwatch."""
         self._start = dt.datetime.now()
-        logger.info("started %s", tt.stdlib.isoformat(self._start))
+        logger.info("started %s", tt.core.isoformat(self._start))
         return self
 
     def __exit__(self, exc_type, exc, exc_tb) -> bool:
         """Stop the stopwatch."""
         end_dt = dt.datetime.now()
-        logger.info("stopped %s", tt.stdlib.isoformat(end_dt))
+        logger.info("stopped %s", tt.core.isoformat(end_dt))
         self._duration = Duration(self._start, end_dt)
         if self.label:
             logger.info("%s took %s", self.label, self.duration.as_default())
@@ -412,8 +413,8 @@ class Stopwatch(ContextDecorator):
         return False
 
     def __repr__(self) -> str:
-        start = tt.stdlib.isoformat(self.duration.start_dt)
-        end = tt.stdlib.isoformat(self.duration.end_dt)
+        start = tt.core.isoformat(self.duration.start_dt)
+        end = tt.core.isoformat(self.duration.end_dt)
         dur = self.duration.as_default()
         return f"{self.__class__.__name__}({start}, {end}) took {dur}"
 
@@ -427,8 +428,8 @@ class Stopwatch(ContextDecorator):
 
 def datesub(
     part: str,
-    start: tt.stdlib.DateTimeLike,
-    end: tt.stdlib.DateTimeLike,
+    start: DateTimeLike,
+    end: DateTimeLike,
 ) -> int:
     """Return the difference between two dates or times in complete time units.
 
@@ -448,24 +449,24 @@ def datesub(
     >>> import timeteller as tt
     >>> start_time = "2000-01-01 00:00:00.012345"
     >>> end_time = "2025-01-01 23:59:59.123456"
-    >>> tt.ext.datesub("decades", start_time, end_time)
+    >>> tt.plus.datesub("decades", start_time, end_time)
     2
-    >>> tt.ext.datesub("years", start_time, end_time)
+    >>> tt.plus.datesub("years", start_time, end_time)
     25
-    >>> tt.ext.datesub("quarter", start_time, end_time)
+    >>> tt.plus.datesub("quarter", start_time, end_time)
     100
-    >>> tt.ext.datesub("months", start_time, end_time)
+    >>> tt.plus.datesub("months", start_time, end_time)
     300
-    >>> tt.ext.datesub("days", start_time, end_time)
+    >>> tt.plus.datesub("days", start_time, end_time)
     9132
-    >>> tt.ext.datesub("hours", start_time, end_time)
+    >>> tt.plus.datesub("hours", start_time, end_time)
     219191
-    >>> tt.ext.datesub("minutes", start_time, end_time)
+    >>> tt.plus.datesub("minutes", start_time, end_time)
     13151519
-    >>> tt.ext.datesub("seconds", start_time, end_time)
+    >>> tt.plus.datesub("seconds", start_time, end_time)
     789091199
 
-    >>> tt.ext.datesub("days", "2024-07-01", "2024-07-07")
+    >>> tt.plus.datesub("days", "2024-07-01", "2024-07-07")
     6
     """
     query = f"SELECT datesub('{part}', ?, ?)"
@@ -474,17 +475,17 @@ def datesub(
 
 
 def parse(
-    value: tt.stdlib.DateTimeLike,
+    value: DateTimeLike,
     formats: str | Sequence[str] | None = None,
 ) -> dt.datetime:
     """Return a datetime.datetime parsed from a datetime, date, time, or string."""
     try:
-        return tt.stdlib.parse(value, formats)
+        return tt.core.parse(value, formats)
     except ValueError:
         return parser.parse(value, default=dt.datetime(1900, 1, 1, 0, 0, 0, 0))
 
 
-def offset(reference: tt.stdlib.DateTimeLike, value: int, unit: str) -> dt.datetime:
+def offset(reference: DateTimeLike, value: int, unit: str) -> dt.datetime:
     """Return a datetime offset by a given number of time units from reference."""
     query = f"SELECT ? + INTERVAL '{value}' {unit.strip().upper()}"
     parameters = (parse(reference),)

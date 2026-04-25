@@ -3,24 +3,61 @@ name: Release
 on:
   push:
     tags:
-      - v*
+      - 'v*'
 
 jobs:
-  pypi:
-    name: Publish to PyPI
+  release:
+    name: Publish library and CLI app to PyPI
     runs-on: ubuntu-latest
+
     environment:
       name: pypi
+
     permissions:
       id-token: write
       contents: read
+
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
-      - run: uv python install
-      - run: uv build
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install Python
+        run: uv python install
+
+      - name: Sync workspace
+        run: uv sync --locked --all-packages --all-extras
+
+      - name: Build all packages
+        run: uv build --no-sources --all-packages
+
       - name: Smoke test (wheel)
-        run: uv run --isolated --no-project --with dist/*.whl tests/smoke_test.py
+        run: |
+          set -euo pipefail
+
+          uv run --isolated --no-project \
+            --with dist/timeteller-*.whl \
+            packages/timeteller/tests/smoke_test_lib.py
+
+          uv run --isolated --no-project \
+            --with dist/timeteller-*.whl \
+            --with dist/timeteller_cli-*.whl \
+            packages/timeteller-cli/tests/smoke_test_cli.py
+
       - name: Smoke test (source distribution)
-        run: uv run --isolated --no-project --with dist/*.tar.gz tests/smoke_test.py
-      - run: uv publish
+        run: |
+          set -euo pipefail
+
+          uv run --isolated --no-project \
+            --with dist/timeteller-*.tar.gz \
+            packages/timeteller/tests/smoke_test_lib.py
+
+          uv run --isolated --no-project \
+            --with dist/timeteller-*.tar.gz \
+            --with dist/timeteller_cli-*.tar.gz \
+            packages/timeteller-cli/tests/smoke_test_cli.py
+
+      - name: Publish all packages
+        run: uv publish
