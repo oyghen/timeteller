@@ -7,6 +7,7 @@ __all__ = (
     "isoformat",
     "last_day",
     "offset",
+    "count",
     "range",
 )
 
