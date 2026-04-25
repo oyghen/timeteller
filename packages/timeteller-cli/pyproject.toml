@@ -1,6 +1,6 @@
 [project]
 name = "timeteller-cli"
-version = "0.1.0"
+version = "1.0.0rc1"
 description = ""
 readme = "README.md"
 authors = [
@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "timeteller[plus]==0.1.0",
+    "timeteller[plus]==1.0.0rc1",
     "typer>=0.24.1",
 ]
 
