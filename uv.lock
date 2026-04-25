@@ -430,7 +430,7 @@ wheels = [
 
 [[package]]
 name = "timeteller"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 source = { editable = "packages/timeteller" }
 
 [package.optional-dependencies]
@@ -450,7 +450,7 @@ provides-extras = ["plus"]
 
 [[package]]
 name = "timeteller-cli"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 source = { editable = "packages/timeteller-cli" }
 dependencies = [
     { name = "timeteller", extra = ["plus"] },
@@ -465,7 +465,7 @@ requires-dist = [
 
 [[package]]
 name = "timeteller-workspace"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 source = { virtual = "." }
 
 [package.dev-dependencies]
