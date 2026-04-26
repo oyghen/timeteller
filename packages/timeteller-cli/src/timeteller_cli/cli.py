@@ -1,4 +1,5 @@
 import datetime as dt
+from typing import Annotated
 
 import timeteller as tt
 import typer
@@ -7,6 +8,8 @@ from rich.table import Table
 
 console = Console()
 app = typer.Typer(add_completion=False)
+
+FORMATS = [r"%Y-%m-%d", r"%Y-%m-%dT%H:%M:%S"]
 
 
 @app.callback(invoke_without_command=True)
@@ -26,30 +29,19 @@ def main(
         raise typer.Exit()
 
 
-START_ARG = typer.Argument(
-    ...,
-    formats=["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"],
-    help="Start date/time.",
-)
-
-END_ARG = typer.Argument(
-    None,
-    formats=["%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"],
-    help="End date/time.",
-    show_default="today/now",
-)
-
-
-REFERENCE_ARG = typer.Argument(
-    ...,
-    help=(
-        "Reference date/time. Use: today, now, or (%Y-%m-%d|%Y-%m-%dT%H:%M:%S) format."
-    ),
-)
-
-
 @app.command()
-def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) -> None:
+def duration(
+    start: Annotated[
+        dt.datetime,
+        typer.Argument(formats=FORMATS, help="Start date/time."),
+    ],
+    end: Annotated[
+        dt.datetime | None,
+        typer.Argument(
+            formats=FORMATS, help="End date/time.", show_default="today/now"
+        ),
+    ] = None,
+) -> None:
     """Show duration summary between two dates or times.
 
     Example:
@@ -88,8 +80,16 @@ def duration(start: dt.datetime = START_ARG, end: dt.datetime | None = END_ARG) 
 
 @app.command()
 def datesub(
-    start: dt.datetime = START_ARG,
-    end: dt.datetime | None = END_ARG,
+    start: Annotated[
+        dt.datetime,
+        typer.Argument(formats=FORMATS, help="Start date/time."),
+    ],
+    end: Annotated[
+        dt.datetime | None,
+        typer.Argument(
+            formats=FORMATS, help="End date/time.", show_default="today/now"
+        ),
+    ] = None,
     unit: str = typer.Option("days", help="Time unit (e.g., decades, years, months)"),
 ) -> None:
     """Show the difference between two dates or times in complete time units.
@@ -126,7 +126,9 @@ def datesub(
 
 @app.command()
 def offset(
-    reference: str = REFERENCE_ARG,
+    reference: str = typer.Argument(
+        help=r"Reference date/time. Use: today, now, %Y-%m-%d, or %Y-%m-%dT%H:%M:%S."
+    ),
     operation: str = typer.Argument(help="Operation to perform. Use 'add' or 'sub'."),
     value: int = typer.Argument(help="Number of time units to offset (>= 0)."),
     unit: str = typer.Argument(help="Time unit (e.g., decades, years, months, days)"),
