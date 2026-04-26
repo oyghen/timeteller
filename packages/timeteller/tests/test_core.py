@@ -735,3 +735,30 @@ class TestRange:
             tt.core.range("2023-01-01T00:00:00", "2023-01-01T02:00:00", 1, "hours")
         )
         assert result[-1] == dt.datetime(2023, 1, 1, 2, 0)
+
+
+@pytest.mark.parametrize(
+    "seed, expected",
+    [
+        (dt.datetime(2026, 1, 1, 0, 0, 0), "2026-01-01T00:00:00.000Z"),
+        (dt.datetime(2026, 1, 1, 0, 0, 0, 1), "2026-01-01T00:00:00.000Z"),
+        (dt.datetime(2026, 1, 1, 0, 0, 0, 10), "2026-01-01T00:00:00.000Z"),
+        (dt.datetime(2026, 1, 1, 0, 0, 0, 100), "2026-01-01T00:00:00.000Z"),
+        (dt.datetime(2026, 1, 1, 0, 0, 0, 1000), "2026-01-01T00:00:00.001Z"),
+        (dt.datetime(2026, 1, 2, 3, 4, 5, 6000), "2026-01-02T03:04:05.006Z"),
+        (dt.datetime(2026, 1, 2, 3, 4, 5, 678000), "2026-01-02T03:04:05.678Z"),
+        (dt.datetime(2026, 1, 2, 3, 4, 5, 678999), "2026-01-02T03:04:05.678Z"),
+        (
+            dt.datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt.timezone(dt.timedelta(hours=1))),
+            "2025-12-31T23:00:00.000Z",
+        ),
+        (
+            dt.datetime(2026, 1, 1, 1, 0, 0, tzinfo=dt.timezone(dt.timedelta(hours=1))),
+            "2026-01-01T00:00:00.000Z",
+        ),
+    ],
+)
+def test_utc_timestamp_ms(seed: dt.datetime, expected: str):
+    with time_machine.travel(seed):
+        result = tt.core.utc_timestamp_ms()
+        assert result == expected

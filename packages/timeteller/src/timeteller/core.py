@@ -137,6 +137,15 @@ def timestamp(timezone: str | None = None, /, fmt: str | None = None) -> str:
     return current.isoformat() if fmt is None else current.strftime(fmt)
 
 
+def utc_timestamp_ms() -> str:
+    """Return the current UTC time as RFC 3339 timestamp with millisecond precision."""
+    return (
+        dt.datetime.now(dt.UTC)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
 def isoformat(value: dt.date | dt.datetime) -> str:
     """Return ISO date when time components are zero, otherwise ISO datetime."""
     if isinstance(value, dt.date) and not isinstance(value, dt.datetime):
