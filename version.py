@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Annotated
 
 import purekit as pk  # type: ignore
-import typer
+import typer  # type: ignore
 
 LIB_NAME = "timeteller"
 CLI_NAME = "timeteller-cli"
