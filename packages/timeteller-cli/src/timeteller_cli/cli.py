@@ -7,25 +7,19 @@ from rich.console import Console
 from rich.table import Table
 
 console = Console()
-app = typer.Typer(add_completion=False)
+app = typer.Typer(add_completion=False, no_args_is_help=True)
 
 FORMATS = [r"%Y-%m-%d", r"%Y-%m-%dT%H:%M:%S"]
 
 
 @app.callback(invoke_without_command=True)
 def main(
-    ctx: typer.Context,
-    version: bool = typer.Option(False, "--version", help="Show version and exit."),
+    version: Annotated[
+        bool, typer.Option("--version", is_eager=True, help="Show version and exit.")
+    ] = False,
 ) -> None:
-    pkg_name = tt.__name__
-    pkg_version = typer.style(tt.__version__, fg=typer.colors.CYAN)
-
     if version:
-        typer.echo(f"{pkg_name} {pkg_version}")
-        raise typer.Exit()
-
-    if ctx.invoked_subcommand is None:
-        typer.echo(f"{pkg_name} {pkg_version} ready. See --help for usage.")
+        typer.echo(tt.__version__)
         raise typer.Exit()
 
 
