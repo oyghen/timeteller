@@ -13,6 +13,7 @@ __all__ = (
 
 import calendar
 import datetime as dt
+import math
 import zoneinfo
 from collections.abc import Iterator, Sequence
 from typing import Final, TypeAlias
@@ -165,10 +166,14 @@ def last_day(value: DateTimeLike) -> dt.datetime:
     return dt.datetime(value_dt.year, value_dt.month, day_count, tzinfo=tz)
 
 
-def offset(reference: DateTimeLike, value: int, unit: str) -> dt.datetime:
-    """Return a datetime offset by a given number of time units from reference."""
-    if not isinstance(value, int):
-        raise TypeError(f"unsupported type {type(value).__name__!r}; expected int")
+def offset(reference: DateTimeLike, value: int | float, unit: str) -> dt.datetime:
+    """Return a datetime offset by finite integer or float units from reference."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(
+            f"unsupported type {type(value).__name__!r}; expected int or float"
+        )
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("offset value must be finite")
 
     valid_units = {
         "weeks",

@@ -1,4 +1,5 @@
 import datetime as dt
+import math
 from typing import Annotated
 
 import timeteller as tt
@@ -124,7 +125,7 @@ def offset(
         help=r"Reference date/time. Use: today, now, %Y-%m-%d, or %Y-%m-%dT%H:%M:%S."
     ),
     operation: str = typer.Argument(help="Operation to perform. Use 'add' or 'sub'."),
-    value: int = typer.Argument(help="Number of time units to offset (>= 0)."),
+    value: float = typer.Argument(help="Finite number of time units to offset."),
     unit: str = typer.Argument(help="Time unit (e.g., decades, years, months, days)"),
 ) -> None:
     """Show date or time offset by adding or subtracting specified time units.
@@ -133,6 +134,7 @@ def offset(
     $ timeteller offset 1991-02-20 add 3 decades
     $ timeteller offset today add 3 days
     $ timeteller offset now sub 2 hours
+    $ timeteller offset 2024-01-01T12:00:00 add 5.5 hours
     """
     token = str(reference).strip().lower()
 
@@ -146,6 +148,8 @@ def offset(
     op = operation.lower()
     if op not in {"add", "sub"}:
         raise typer.BadParameter("Operation must be 'add' or 'sub'")
+    if not math.isfinite(value):
+        raise typer.BadParameter("Offset value must be finite")
     offset_value = value if op == "add" else -value
 
     offset_dt = tt.plus.offset(ref_dt, offset_value, unit)

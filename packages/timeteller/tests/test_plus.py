@@ -822,6 +822,12 @@ class TestOffset:
             ("years", 2, dt.datetime(2022, 1, 15, 0, 0)),
             ("decade", 1, dt.datetime(2030, 1, 15, 0, 0)),
             ("quarter", 7, dt.datetime(2021, 10, 15, 0, 0)),
+            ("days", 1.5, dt.datetime(2020, 1, 16, 12, 0)),
+            ("weeks", 1.5, dt.datetime(2020, 1, 25, 12, 0)),
+            ("months", 1.5, dt.datetime(2020, 3, 1, 0, 0)),
+            ("years", 1.5, dt.datetime(2021, 7, 15, 0, 0)),
+            ("decade", 1.5, dt.datetime(2035, 1, 15, 0, 0)),
+            ("hours", 5.5, dt.datetime(2020, 1, 15, 5, 30)),
             # sub
             ("day", -1, dt.datetime(2020, 1, 14, 0, 0)),
             ("day", -14, dt.datetime(2020, 1, 1, 0, 0)),
@@ -832,9 +838,10 @@ class TestOffset:
             ("years", -2, dt.datetime(2018, 1, 15, 0, 0)),
             ("decade", -1, dt.datetime(2010, 1, 15, 0, 0)),
             ("quarter", -7, dt.datetime(2018, 4, 15, 0, 0)),
+            ("hours", -5.5, dt.datetime(2020, 1, 14, 18, 30)),
         ],
     )
-    def test_offset(self, unit: str, value: int, expected: dt.datetime):
+    def test_offset(self, unit: str, value: int | float, expected: dt.datetime):
         ref_dt = dt.datetime(2020, 1, 15, 0, 0, 0)
         result = tt.plus.offset(ref_dt, value, unit)
         assert result == expected
@@ -878,6 +885,18 @@ class TestOffset:
         assert tt.plus.offset(ref_dt, -3, "MiNuTeS") == ref_dt + dt.timedelta(
             minutes=-3
         )
+
+    @pytest.mark.parametrize("value", ["1", None, [], {}, True])
+    def test_invalid_offset_value_type(self, value: object):
+        with pytest.raises(
+            TypeError, match="unsupported type .*; expected int or float"
+        ):
+            tt.plus.offset("2020-01-15", value, "days")
+
+    @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+    def test_non_finite_offset_value(self, value: float):
+        with pytest.raises(ValueError, match="offset value must be finite"):
+            tt.plus.offset("2020-01-15", value, "days")
 
     def test_invalid_unit_raises_value_error(self):
         with pytest.raises(duckdb.ConversionException):

@@ -505,6 +505,7 @@ class TestOffset:
             ("days", 16, dt.datetime(2020, 1, 31, 0, 0)),
             ("days", 365, dt.datetime(2021, 1, 14, 0, 0)),
             ("hours", 2, dt.datetime(2020, 1, 15, 2, 0)),
+            ("hours", 5.5, dt.datetime(2020, 1, 15, 5, 30)),
             ("minutes", 30, dt.datetime(2020, 1, 15, 0, 30)),
             ("seconds", 45, dt.datetime(2020, 1, 15, 0, 0, 45)),
             ("microseconds", 500, dt.datetime(2020, 1, 15, 0, 0, 0, 500)),
@@ -516,6 +517,7 @@ class TestOffset:
             ("days", -15, dt.datetime(2019, 12, 31, 0, 0)),
             ("days", -365, dt.datetime(2019, 1, 15, 0, 0)),
             ("hours", -2, dt.datetime(2020, 1, 14, 22, 0)),
+            ("hours", -5.5, dt.datetime(2020, 1, 14, 18, 30)),
             ("minutes", -30, dt.datetime(2020, 1, 14, 23, 30)),
             ("seconds", -45, dt.datetime(2020, 1, 14, 23, 59, 15)),
             ("microseconds", -500, dt.datetime(2020, 1, 14, 23, 59, 59, 999500)),
@@ -565,9 +567,16 @@ class TestOffset:
         result = tt.core.offset(reference, value, "days")
         assert result == expected
 
-    @pytest.mark.parametrize("value", ["1", 1.0, None, [], {}])
+    @pytest.mark.parametrize("value", ["1", None, [], {}, True])
     def test_invalid_value_type(self, value: Any):
-        with pytest.raises(TypeError, match="unsupported type .*; expected int"):
+        with pytest.raises(
+            TypeError, match="unsupported type .*; expected int or float"
+        ):
+            tt.core.offset("2020-01-15", value, "days")
+
+    @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+    def test_non_finite_offset_value(self, value: float):
+        with pytest.raises(ValueError, match="offset value must be finite"):
             tt.core.offset("2020-01-15", value, "days")
 
     @pytest.mark.parametrize("unit", ["year", "month", "century", "", "Day"])

@@ -12,3 +12,11 @@
 ```shell
 uv tool install timeteller-cli
 ```
+
+The `offset` command accepts fractional time-unit values:
+
+```shell
+timeteller offset 2024-01-01T12:00:00 add 5.5 hours
+```
+
+This adds 5 hours and 30 minutes, producing `2024-01-01T17:30:00`.

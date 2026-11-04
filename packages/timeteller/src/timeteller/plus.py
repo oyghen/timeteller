@@ -2,6 +2,7 @@ __all__ = ("Duration", "Stopwatch", "datesub", "parse", "offset")
 
 import datetime as dt
 import logging
+import math
 from collections.abc import Callable, Sequence
 from contextlib import ContextDecorator
 from dataclasses import dataclass, field
@@ -485,8 +486,16 @@ def parse(
         return parser.parse(value, default=dt.datetime(1900, 1, 1, 0, 0, 0, 0))
 
 
-def offset(reference: DateTimeLike, value: int, unit: str) -> dt.datetime:
-    """Return a datetime offset by a given number of time units from reference."""
-    query = f"SELECT ? + INTERVAL '{value}' {unit.strip().upper()}"
-    parameters = (parse(reference),)
+def offset(reference: DateTimeLike, value: int | float, unit: str) -> dt.datetime:
+    """Return a datetime offset by finite integer or float units from reference."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(
+            f"unsupported type {type(value).__name__!r}; expected int or float"
+        )
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("offset value must be finite")
+
+    query = "SELECT ? + CAST(? AS INTERVAL)"
+    interval = f"{value} {unit.strip().upper()}"
+    parameters = (parse(reference), interval)
     return duckdb.execute(query, parameters).fetchone()[0]
